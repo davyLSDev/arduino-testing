@@ -1,10 +1,31 @@
+// Needed function
+float mInv(float divider){
+  float inverse = 1.0/divider;
+  return inverse;
+}
+
 const int solarPanelInput = A0;
+const int isoPot = A1;
+const int timePot = A2;
+const int aperaturePot = A3;
+const int isoValueTable[] = {-375,-75,15,3,6,12, \
+   25,50,100,200,400,800,1600,3200};   
+const int timeValueTable[] = {-4000,-2000,-1000, \
+  -500,-250,-125,-60,-30,-15,-8,-4,-2, \
+  1,2,4,8,15,30,60,120,240,3600,7200,14400,28800};
+const int aperatureValueTable[] = { 1,2,3,4,6,8, \
+  11,22,32,45,64,90,128,181,256,362,512,724,1024};
 int solarPanelValue = 0;
-int potValue = 0;
+float isoValue = 0;
+float timeValue = 0;
+float aperatureValue = 0;
+
+//int potValue = 0;
+
 int ledPins[] = {2,3,4,5,6,7,8,9};
-String text = "Scaled light intensity => ";
-String text2 = "Pot value => ";
-String updateMessage = "";
+//String text = "Scaled light intensity => ";
+//String text2 = "Pot value => ";
+//String updateMessage = "";
 
 void setup()                    
 {
@@ -18,16 +39,15 @@ void loop()
 {
   blankAllLeds();
   solarPanelValue = getSolarPanelReading();
-  potValue = getPotValue();
+  isoValue = getPotValue(isoPot,0,1023,isoValueTable);
+//  timeValue = getPotValue(timePot);
+//  aperatureValue = getPotValue(aperaturePot);
   ledMeterOutput(solarPanelValue);
-  for (int blankLines = 0; blankLines < 18; blankLines++){
-    Serial.println("");
-  }
-  delay(200);
-  String updateMessage = text + solarPanelValue;
+  updateInformation (solarPanelValue, isoValue, 100, 11); 
+/*  String updateMessage = text + solarPanelValue;
   Serial.println(updateMessage);
   updateMessage = text2 + potValue;
-  Serial.println(updateMessage);
+  Serial.println(updateMessage);*/
 }
 
 void ledMeterOutput(int meterInput){
@@ -80,8 +100,30 @@ int getSolarPanelReading(){
   return lightRange; 
 }
 
-int getPotValue(){
-  int potVoltage = analogRead(A1);
-  return potVoltage;
-  
+//int getPotValue(int potNumber){
+//  int potValue = analogRead(potNumber);
+//  return potValue; 
+//}
+
+int getPotValue(int potIdentity, int potMinValue, int potMaxValue, int potValueTable[]){
+  int value = analogRead(potIdentity);
+//  int arraySize = sizeof(potValueTable) - 1;
+  int potRange = map (value, potMinValue, potMaxValue, 0, 13);
+  int valueFromTable = potValueTable[potRange];
+  return valueFromTable;
+}
+
+void updateInformation (int lightIntensity, int iso, int shutterTime, int aperature ){
+  for (int blankLines = 0; blankLines < 18; blankLines++){
+    Serial.println("");
+    Serial.println("Light intensity is:");
+    Serial.println(lightIntensity);
+    Serial.println("iso is");
+    Serial.println(iso);
+    Serial.println("shutter speed is:");
+    Serial.println(shutterTime);
+    Serial.println("aperature is:");
+    Serial.println(aperature);
+  }
+  delay(2000);
 }
