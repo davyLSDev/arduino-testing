@@ -73,21 +73,21 @@ void setup()
     }  
 }
 
-//ISR(TIMER1_COMPA_vect)        // interrupt service routine 
-//{
-//    int number = displayNumber;
-//    int digitNumber = 0;
-//  do {
-//    int digit = number % 10;
-//      selectDigit(digitNumber++);
-//      writeDigit(digit);
-//    number /= 10;
-//  } while (number > 0);
-//}
+ISR(TIMER1_COMPA_vect)        // interrupt service routine 
+{
+    long number = displayNumber;
+    int digitNumber = 0;
+  do {
+    int digit = (int) number % 10;
+      selectDigit(digitNumber++);
+      writeDigit(digit);
+    number /= 10;
+  } while (number > 0);
+}
 
 void loop()
 {
-  displayNumber=123456;
+  displayNumber=654321;
 //  displayNumber = displayNumber++;
   Serial.println(displayNumber);
 //   testAllDigits ();
