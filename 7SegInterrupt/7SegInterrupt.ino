@@ -43,7 +43,7 @@ int digitValueToBits[10][4] = { { 0,0,0,0 },
                                 { 1,0,0,0 },
                                 { 1,0,0,1 } };
 
-//int displayNumber=20000;
+long displayNumber;
 
 void setup()
 {
@@ -87,9 +87,10 @@ void setup()
 
 void loop()
 {
+  displayNumber=123456;
 //  displayNumber = displayNumber++;
-//  Serial.println(displayNumber);
-   testAllDigits ();
+  Serial.println(displayNumber);
+//   testAllDigits ();
 }
 
 // Functions for the seven segment code here ...
