@@ -54,7 +54,7 @@ void setup()
   TCCR1B = 0;// same for TCCR1B
   TCNT1  = 0;//initialize counter value to 0
   // set compare match register for 1hz increments
-  OCR1A = 520;// = (16*10^6) / (1*1024) - 1 (must be <65536)
+  OCR1A = 3;// = (16*10^6) / (1*1024) - 1 (must be <65536)
   // turn on CTC mode
   TCCR1B |= (1 << WGM12);
   // Set CS10 and CS12 bits for 1024 prescaler
@@ -87,7 +87,7 @@ ISR(TIMER1_COMPA_vect)        // interrupt service routine
 
 void loop()
 {
-  displayNumber=654321;
+  displayNumber=111111;
 //  displayNumber = displayNumber++;
   Serial.println(displayNumber);
 //   testAllDigits ();
