@@ -43,7 +43,7 @@ int digitValueToBits[10][4] = { { 0,0,0,0 },
                                 { 1,0,0,0 },
                                 { 1,0,0,1 } };
 
-long displayNumber;
+long displayNumber = 0 ;
 
 void setup()
 {
@@ -87,9 +87,12 @@ ISR(TIMER1_COMPA_vect)        // interrupt service routine
 
 void loop()
 {
-  displayNumber=111111;
-//  displayNumber = displayNumber++;
-  Serial.println(displayNumber);
+  while ( displayNumber < 654321 ) {
+    delay (100);
+    displayNumber++;
+    Serial.println(displayNumber);
+  }
+  if ( displayNumber = 654321 ) displayNumber = 1;
 //   testAllDigits ();
 }
 
@@ -130,9 +133,9 @@ void troubleshoot(){
    digitValue[3] => Arduino pin 5 */
 
   digitalWrite(digitValue[3],LOW);
-  delay(200);
+  delay(150);
   digitalWrite(digitValue[3],HIGH);
-  delay(200);
+  delay(150);
 }
 
 void testAllDigits (){
