@@ -17,7 +17,7 @@ int lcdContrast = 50;
 
 void setup()                    
 {
-  Serial.begin(9600);
+//  Serial.begin(9600);
   
   display.begin(); // initialize display
   
@@ -36,7 +36,7 @@ void loop()
     drawMeter("f4.5", "1/1000", 3200 );
     updateMeter (i);
     display.clearDisplay();
-    delay(300);
+    delay(50);
   }
 }
 
@@ -48,10 +48,10 @@ void drawMeter(String fstop, String shutter, int iso){
   byte scaleCorners = upperLeftCorner | upperRightCorner;
 
   int numberOfScaleMarks = 5;
-  int scaleMarksAlignment = 1; // 0 -> top, 1 -> centre, 2 -> bottom
-  int scaleLineHeight = 4;
-  int scaleRadius1 = 6;
-  int scaleRadius2 = 25;
+//  int scaleMarksAlignment = 1; // 0 -> top, 1 -> centre, 2 -> bottom
+  int scaleLineLength = 4;
+  int scaleBaseRadius = 6;
+  int scaleRadius = 25;
   int needleBaseFillWidth = 2;
   int bracketLength = 34;
   int bracketHeight = 8;
@@ -102,8 +102,12 @@ void drawMeter(String fstop, String shutter, int iso){
 
 // draw the meter's scale using circle segments
 //  display.drawCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, BLACK);
-  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius1, scaleCorners, BLACK);
-  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius2, scaleCorners, BLACK);
+  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleBaseRadius, scaleCorners, BLACK);
+  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, scaleCorners, BLACK);
+
+// draw the scale marks
+
+  scaleMarks (needleBaseCoordinate.x, needleBaseCoordinate.y, numberOfScaleMarks, scaleRadius, scaleLineLength);
 }
 
 void updateMeter (int meterValue){
@@ -122,4 +126,9 @@ void updateMeter (int meterValue){
 
   display.drawLine(xInit, yInit, xTip, yTip, BLACK);
   display.display();
+}
+
+  void scaleMarks (int xCoordinate, int yCoordinate, int numberOfMarks, int radius, int markLength){
+
+    
 }
