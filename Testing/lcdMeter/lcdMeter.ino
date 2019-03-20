@@ -40,67 +40,12 @@ void loop()
   }
 }
 
-void updateInformation (int lightIntensity, int iso, int shutterTime, int aperature ){
-  for (int blankLines = 0; blankLines < 18; blankLines++){
-    Serial.println("");
-    Serial.println("Light intensity is:");
-    Serial.println(lightIntensity);
-    Serial.println("iso is");
-    Serial.println(iso);
-    Serial.println("shutter speed is:");
-    Serial.println(shutterTime);
-    Serial.println("aperature is:");
-    Serial.println(aperature);
-  }
-  delay(2000);
-}
-
-void stuffNnonsense(){
-  //  display.display();
-//  display.clearDisplay();
-//  display.drawLine(1, 48, 48, 48, BLACK);
-//  display.display();
-//  delay(400);
-//  
-//  display.clearDisplay();
-//  display.drawLine(1, 1, 48, 48, BLACK);
-//  display.display();
-//  delay(400);
-//  
-//  display.clearDisplay();
-//  display.drawLine(84, 1, 48, 48, BLACK);
-//  display.display();
-//  delay(400);
-//
-//  display.clearDisplay();
-//  display.drawLine(48, 84, 48, 48, BLACK);
-//  display.display();
-//  delay(400);
-  
-//  for (int testValue = 1 ; testValue < 100; testValue++){
-//    updateMeter(testValue);
-}
-
-void test(){
-  for (int x = 1; x < 85; x++){
-    display.writePixel(x, 1, BLACK);
-    display.display();
-  }
-
-  for (int y = 1; y < 24; y++){
-    display.clearDisplay();
-    delay (300);
-    display.drawLine(1, y*2, 84, y*2, BLACK);
-    display.display();
-  }
-}
-
 void drawMeter(String fstop, String shutter, int iso){
 
   int numberOfScaleMarks = 5;
   int scaleMarksAlignment = 1; // 0 -> top, 1 -> centre, 2 -> bottom
   int scaleLineHeight = 4;
-  int scaleRadius = 20;
+  int scaleRadius = 25;
   int needleBaseFillWidth = 2;
   int bracketLength = 34;
   int bracketHeight = 8;
@@ -146,14 +91,17 @@ void drawMeter(String fstop, String shutter, int iso){
   display.drawFastVLine(rightBracketCoordinate.x, rightBracketCoordinate.y, bracketHeight, BLACK);
   
 // draw the centre of the needle  
-  display.fillCircle( needleBaseCoordinate.x, needleBaseCoordinate.y, needleBaseFillWidth, BLACK);
+  display.fillCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, needleBaseFillWidth, BLACK);
   display.display();
+
+// draw the meter's scale
+  display.drawCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, BLACK);
 }
 
 void updateMeter (int meterValue){
   int xInit = 43;
   int yInit = 37;
-  int radius = 29;
+  int radius = 31;
 
   int xTip;
   int yTip;
