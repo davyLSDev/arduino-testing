@@ -41,11 +41,17 @@ void loop()
 }
 
 void drawMeter(String fstop, String shutter, int iso){
+  byte upperLeftCorner = 0x1;
+  byte upperRightCorner = 0x2;
+//  byte lowerRightCorner = 0x4;
+//  byte lowerLeftCorner = 0x8;
+  byte scaleCorners = upperLeftCorner | upperRightCorner;
 
   int numberOfScaleMarks = 5;
   int scaleMarksAlignment = 1; // 0 -> top, 1 -> centre, 2 -> bottom
   int scaleLineHeight = 4;
-  int scaleRadius = 25;
+  int scaleRadius1 = 6;
+  int scaleRadius2 = 25;
   int needleBaseFillWidth = 2;
   int bracketLength = 34;
   int bracketHeight = 8;
@@ -94,8 +100,10 @@ void drawMeter(String fstop, String shutter, int iso){
   display.fillCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, needleBaseFillWidth, BLACK);
   display.display();
 
-// draw the meter's scale
-  display.drawCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, BLACK);
+// draw the meter's scale using circle segments
+//  display.drawCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, BLACK);
+  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius1, scaleCorners, BLACK);
+  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius2, scaleCorners, BLACK);
 }
 
 void updateMeter (int meterValue){
