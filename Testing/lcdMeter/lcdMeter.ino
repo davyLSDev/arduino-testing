@@ -158,17 +158,11 @@ void updateMeter (int meterValue){
   int xTip;
   int yTip;
 
-  int angle = 1.8*meterValue;
-//  if (meterValue >90){
-//    xTip = abs(sin(angle))*radius;
-//  } else {
-//    x = abs(sin(angle))*radius;
-//  }
-//  
-//  y = abs(cos(angle))*radius;
+  float Pi = 3.1415926;
+  float angle = meterValue*Pi/100.0; // trig functions are in radians!
 
-  xTip = xInit + radius*cos(angle);
-  yTip = yInit - radius*abs(sin(angle));
+  xTip = xInit - int(radius*cos(angle));
+  yTip = yInit - int(radius*abs(sin(angle)));
 
   display.drawLine(xInit, yInit, xTip, yTip, BLACK);
   display.display();
