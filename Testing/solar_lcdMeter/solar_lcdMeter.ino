@@ -4,9 +4,13 @@
  * 1. put scale marks on
  * 2. use pot and two pushbutton switches to adjust iso, fstop, shutter speed,
  *    (lcd backlight brightness?)
+ *    add UI to the LCD panel to let user know which value is being changed
  * 3. Calibrate the meter
  *    add a trim pot for calibration?
  * 4. update the UI (sketch in Dia first maybe?)
+ * 5. make provision for times > 1 sec with more precision
+ * 6. make provision for wider aperatures, and other intermediate values
+ * 7. change lcd contrast (I didn't notice a great amount of diff in values though)
  * 
  */
 
@@ -33,31 +37,21 @@ const int lcdBackpanelLight = 10;
 const int solarPanelInput = A0;
 const int changeVariablesPot = A1;
 
-const int isoTable[] = {-375,-75,15,3,6,12, \
+const float isoTable[] = {3.75,7.5,15,3,6,12, \
    25,50,100,200,400,800,1600,3200};   
-const int shutterSpeedTable[] = {-4000,-2000,-1000, \
-  -500,-250,-125,-60,-30,-15,-8,-4,-2, \
-  1,2,4,8,15,30,60,120,240,3600,7200,14400,28800};
-const int aperatureTable[] = { 1,2,3,4,6,8, \
+const String shutterSpeedTable[] = {"1/1000", \
+  "1/500","1/250","1/125","1/60","1/30","1/15","1/8","1/4","1/2", \
+  "00:01","00:02","00:04","00:08","00:15","00:30","00:60","02:00","04:00","08:00","16:00","32:00","1:04 H"};
+const float aperatureTable[] = { 1.4,2,2.8,4,5.6,8, \
   11,22,32,45,64,90,128,181,256,362,512,724,1024};
 
-int solarPanelValue = 0;
+int solarPanel = 0;
 int lcdContrast = 50;
 
-/* variable register is used thus
- *  0 -> don't change any of iso, fstop, or shutter speed
- *  1 -> change iso
- *  2 -> change shutter speed
- *  3 -> change fstop
- *  4 -> change the lcd backlight brightness
- *  
- *  The idea is that 
- */
-int variableRegister = 4; // this will later change depending upon the up down switches
-
-float isoValue = 0;
-float shutterSpeedValue = 0;
-float aperatureValue = 0;
+byte brightness;
+float iso = 0;
+float shutterSpeed = 0;
+float aperature = 0;
 
 void setup()                    
 {
@@ -76,19 +70,28 @@ void setup()
 
 void loop()                       
 {
-  byte brightness;
-  int minByteValue = 0;
-  int maxByteValue = 255;
-  int minValue = 0;
-  int maxValue = 1023;
+/* variable register is used thus
+ *  0 -> don't change any of iso, fstop, or shutter speed
+ *  1 -> change iso
+ *  2 -> change shutter speed
+ *  3 -> change fstop
+ *  4 -> change the lcd backlight brightness
+ *  
+ *  The idea is that 
+ */
+  int variableRegister; // = 4; // this will later change depending upon the up down switches
+  variableRegister = getVariableChoice();
+
+  if (variableRegister !=0){
+    updateVariables (variableRegister);
+  }
   
-  brightness = map(analogRead(changeVariablesPot), minValue, maxValue, minByteValue, maxByteValue);
   Serial.println(byte(brightness));
   analogWrite(lcdBackpanelLight, brightness);
  
-  solarPanelValue = getSolarPanelReading();
+  solarPanel = getSolarPanelReading();
   drawMeter("f4.5", "1/1000", 3200 );
-  updateMeter (solarPanelValue);
+  updateMeter (solarPanel);
   display.clearDisplay();
   delay(100);
 }
@@ -180,6 +183,7 @@ void updateMeter (int meterValue){
   display.drawLine(xInit, yInit, xTip, yTip, BLACK);
   display.display();
 }
+  
   void scaleMarks (int xCoordinate, int yCoordinate, int numberOfMarks, int radius, int markLength){
    
 }
@@ -191,4 +195,37 @@ int getSolarPanelReading(){
   int lightReading = analogRead(solarPanelInput);
   int lightRange = map (lightReading, minLight, maxLight, 0, 100);
   return lightRange; 
+}
+
+int getVariableChoice(){
+  return 4; // this will be varied by the switches routine later
+}
+
+void updateVariables (int updateVariableChoice){
+  const int minByteValue = 0;
+  const int maxByteValue = 255;
+  const int minBrightness = 0;
+  const int maxBrightness = 255;
+  const int minIsoIndex = 0;
+  const int maxIsoIndex = 13;
+  const int minShutterSpeedIndex = 0;
+  const int maxShutterSpeedIndex = 22;
+  const int minAperatureIndex = 0;
+  const int maxAperatureIndex = 18;
+  const int minPotValue = 0;
+  const int maxPotValue = 1023;
+
+  switch (updateVariableChoice) {
+    case 1:
+      break;
+    case 2:
+      break;
+    case 3:
+      break;
+    case 4:
+      brightness = map(analogRead(changeVariablesPot), minPotValue, maxPotValue, minByteValue, maxByteValue);
+      break;
+    case 5:
+      break;                        
+  }
 }
