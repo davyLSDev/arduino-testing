@@ -49,9 +49,9 @@ int solarPanel = 0;
 int lcdContrast = 50;
 
 byte brightness;
-float iso = 0;
-float shutterSpeed = 0;
-float aperature = 0;
+float isoIDX = 0;
+float shutterSpeedIDX = 0;
+float aperatureIDX = 0;
 
 void setup()                    
 {
@@ -81,17 +81,17 @@ void loop()
  */
   int variableRegister; // = 4; // this will later change depending upon the up down switches
   variableRegister = getVariableChoice();
-
+  Serial.println(String(variableRegister));
   if (variableRegister !=0){
     updateVariables (variableRegister);
   }
   
 //  Serial.println(String(isoTable[int(iso)], DEC));
-  Serial.println(shutterSpeedTable[int(shutterSpeed)]);
+//  Serial.println(shutterSpeedTable[int(shutterSpeedIDX)]);
   analogWrite(lcdBackpanelLight, brightness);
  
   solarPanel = getSolarPanelReading();
-  drawMeter("f4.5", "1/1000", int(isoTable[int(iso)]) );
+  drawMeter(("f"+String(aperatureTable[int(aperatureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]) );
   updateMeter (solarPanel);
   display.clearDisplay();
   delay(100);
@@ -205,7 +205,9 @@ int getVariableChoice(){
  *  3 -> change fstop
  *  4 -> change the lcd backlight brightness
  */
-  return 1; // change iso
+//  return 1; // change iso ... works, but improve by displaying decimal values like 3.75, 7.5
+//  return 2; // change shutter speed ... works just fine
+  return 3; // 
 //  return 4; // lcd brightness ... works!
 }
 
@@ -229,18 +231,16 @@ void updateVariables (int updateVariableChoice){
   
   switch (i) {
     case 1:
-      iso = variable;
+      isoIDX = variable;
       break;
     case 2:
-      shutterSpeed = variable;
+      shutterSpeedIDX = variable;
       break;
     case 3:
-      aperature = variable;
+      aperatureIDX = variable;
       break;
     case 4:
       brightness = variable;
-      break;
-    case 5:
       break;                       
   }
 }
