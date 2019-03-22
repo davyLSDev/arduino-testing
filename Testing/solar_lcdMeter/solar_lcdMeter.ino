@@ -31,21 +31,32 @@ const int upSwitch = 8;
 const int downSwitch = 9;
 const int lcdBackpanelLight = 10; 
 const int solarPanelInput = A0;
-const int changeValuesPot = A1;
+const int changeVariablesPot = A1;
 
-const int isoValueTable[] = {-375,-75,15,3,6,12, \
+const int isoTable[] = {-375,-75,15,3,6,12, \
    25,50,100,200,400,800,1600,3200};   
-const int timeValueTable[] = {-4000,-2000,-1000, \
+const int shutterSpeedTable[] = {-4000,-2000,-1000, \
   -500,-250,-125,-60,-30,-15,-8,-4,-2, \
   1,2,4,8,15,30,60,120,240,3600,7200,14400,28800};
-const int aperatureValueTable[] = { 1,2,3,4,6,8, \
+const int aperatureTable[] = { 1,2,3,4,6,8, \
   11,22,32,45,64,90,128,181,256,362,512,724,1024};
 
 int solarPanelValue = 0;
 int lcdContrast = 50;
 
+/* variable register is used thus
+ *  0 -> don't change any of iso, fstop, or shutter speed
+ *  1 -> change iso
+ *  2 -> change shutter speed
+ *  3 -> change fstop
+ *  4 -> change the lcd backlight brightness
+ *  
+ *  The idea is that 
+ */
+int variableRegister = 4; // this will later change depending upon the up down switches
+
 float isoValue = 0;
-float timeValue = 0;
+float shutterSpeedValue = 0;
 float aperatureValue = 0;
 
 void setup()                    
@@ -54,7 +65,7 @@ void setup()
   pinMode (upSwitch, INPUT);
   pinMode (downSwitch, INPUT);
   pinMode (lcdBackpanelLight, OUTPUT);
-//  Serial.begin(9600);
+  Serial.begin(9600);
   
   display.begin(); // initialize display
   display.setContrast(lcdContrast);
@@ -65,15 +76,21 @@ void setup()
 
 void loop()                       
 {
-  byte brightness = 255;
-  analogWrite(lcdBackpanelLight, brightness);
+  byte brightness;
+  int minByteValue = 0;
+  int maxByteValue = 255;
+  int minValue = 0;
+  int maxValue = 1023;
   
-  display.display();
+  brightness = map(analogRead(changeVariablesPot), minValue, maxValue, minByteValue, maxByteValue);
+  Serial.println(byte(brightness));
+  analogWrite(lcdBackpanelLight, brightness);
+ 
   solarPanelValue = getSolarPanelReading();
   drawMeter("f4.5", "1/1000", 3200 );
   updateMeter (solarPanelValue);
   display.clearDisplay();
-  delay(50);
+  delay(100);
 }
 
 void drawMeter(String fstop, String shutter, int iso){
