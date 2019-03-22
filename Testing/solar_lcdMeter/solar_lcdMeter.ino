@@ -9,8 +9,9 @@
  *    add a trim pot for calibration?
  * 4. update the UI (sketch in Dia first maybe?)
  * 5. make provision for times > 1 sec with more precision
- * 6. make provision for wider aperatures, and other intermediate values
+ * 6. make provision for wider apertures, and other intermediate values
  * 7. change lcd contrast (I didn't notice a great amount of diff in values though)
+ * 8. Get rid of global variables that are unneeded
  * 
  */
 
@@ -42,16 +43,19 @@ const float isoTable[] = {3.75,7.5,15,3,6,12, \
 const String shutterSpeedTable[] = {"1/1000", \
   "1/500","1/250","1/125","1/60","1/30","1/15","1/8","1/4","1/2", \
   "00:01","00:02","00:04","00:08","00:15","00:30","00:60","02:00","04:00","08:00","16:00","32:00","1:04 H"};
-const float aperatureTable[] = { 1.4,2,2.8,4,5.6,8, \
+const float apertureTable[] = { 1.4,2,2.8,4,5.6,8, \
   11,22,32,45,64,90,128,181,256,362,512,724,1024};
 
 int solarPanel = 0;
 int lcdContrast = 50;
+int upSwitchStateLastState = 0;
+int downSwitchStateLastState = 0;
 
 byte brightness;
 float isoIDX = 0;
 float shutterSpeedIDX = 0;
-float aperatureIDX = 0;
+float apertureIDX = 0;
+unsigned long debounceTimeValue = 0;
 
 void setup()                    
 {
@@ -80,7 +84,7 @@ void loop()
  *  The idea is that 
  */
   int variableRegister; // = 4; // this will later change depending upon the up down switches
-  variableRegister = getVariableChoice();
+  variableRegister = getVariableChoice(debounceTimeValue);
   Serial.println(String(variableRegister));
   if (variableRegister !=0){
     updateVariables (variableRegister);
@@ -91,7 +95,7 @@ void loop()
   analogWrite(lcdBackpanelLight, brightness);
  
   solarPanel = getSolarPanelReading();
-  drawMeter(("f"+String(aperatureTable[int(aperatureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]) );
+  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]) );
   updateMeter (solarPanel);
   display.clearDisplay();
   delay(100);
@@ -198,7 +202,7 @@ int getSolarPanelReading(){
   return lightRange; 
 }
 
-int getVariableChoice(){
+int getVariableChoice(unsigned long lastTime){
 /*  0 -> don't change any of iso, fstop, or shutter speed
  *  1 -> change iso
  *  2 -> change shutter speed
@@ -207,8 +211,25 @@ int getVariableChoice(){
  */
 //  return 1; // change iso ... works, but improve by displaying decimal values like 3.75, 7.5
 //  return 2; // change shutter speed ... works just fine
-  return 3; // 
+//  return 3; // change fstop ... works!
 //  return 4; // lcd brightness ... works!
+
+  unsigned long timeNow = millis();
+  unsigned long debounceDelay = 50;
+
+  int upSwitchState = digitalRead(upSwitch);
+  int downSwitchState = digitalRead(downSwitch);
+//  Serial.println("up is "+String(upSwitchState));
+//  Serial.println("down is "+String(downSwitchState));
+
+  if ( (timeNow - lastTime ) >= debounceDelay){
+    lastTime = timeNow;
+    Serial.println("------------------------------------------------------------");
+    Serial.println("Debounced upswitch value is "+String(upSwitchState, DEC));
+    Serial.println("Debounced downswitch value is "+String(downSwitchState, DEC));
+    Serial.println(" ");    
+  }
+  
 }
 
 void updateVariables (int updateVariableChoice){
@@ -218,13 +239,13 @@ void updateVariables (int updateVariableChoice){
   const int maxIsoIndex = 13;
   const int minShutterSpeedIndex = 0;
   const int maxShutterSpeedIndex = 22;
-  const int minAperatureIndex = 0;
-  const int maxAperatureIndex = 18;
+  const int minApertureIndex = 0;
+  const int maxApertureIndex = 18;
   const int minPotValue = 0;
   const int maxPotValue = 1023;
 
-  const int minValue [] { minPotValue, minIsoIndex, minShutterSpeedIndex, minAperatureIndex, minBrightness };
-  const int maxValue [] { maxPotValue, maxIsoIndex, maxShutterSpeedIndex, maxAperatureIndex, maxBrightness };
+  const int minValue [] { minPotValue, minIsoIndex, minShutterSpeedIndex, minApertureIndex, minBrightness };
+  const int maxValue [] { maxPotValue, maxIsoIndex, maxShutterSpeedIndex, maxApertureIndex, maxBrightness };
 
   int i = updateVariableChoice;
   int variable = map(analogRead(changeVariablesPot), minValue[0], maxValue[0], minValue[i], maxValue[i]);
@@ -237,7 +258,7 @@ void updateVariables (int updateVariableChoice){
       shutterSpeedIDX = variable;
       break;
     case 3:
-      aperatureIDX = variable;
+      apertureIDX = variable;
       break;
     case 4:
       brightness = variable;
