@@ -1,5 +1,13 @@
 /* Sketch for creating an lcd solar panel meter
  * 
+ * improvements
+ * 1. put scale marks on
+ * 2. use pot and two pushbutton switches to adjust iso, fstop, shutter speed,
+ *    (lcd backlight brightness?)
+ * 3. Calibrate the meter
+ *    add a trim pot for calibration?
+ * 4. update the UI (sketch in Dia first maybe?)
+ * 
  */
 
 #include <Adafruit_GFX.h>
@@ -13,27 +21,39 @@
 // Arduino pin 7 - LCD chip enable (SCE)
 Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 7, 6);
 
+/* Arduino pin A1 A1 -> pot
+  * Arduino pin  8  -> LH switch (up)
+  * Arduino pin  9  -> RH switch (down)
+  * Arduino pin  10 -> pwm pin for lcd brightness  
+ */
+
+const int upSwitch = 8;
+const int downSwitch = 9;
+const int lcdBackpanelLight = 10; 
 const int solarPanelInput = A0;
-const int isoPot = A1;
-const int timePot = A2;
-const int aperaturePot = A3;
-int isoValueTable[] = {-375,-75,15,3,6,12, \
+const int changeValuesPot = A1;
+
+const int isoValueTable[] = {-375,-75,15,3,6,12, \
    25,50,100,200,400,800,1600,3200};   
-int timeValueTable[] = {-4000,-2000,-1000, \
+const int timeValueTable[] = {-4000,-2000,-1000, \
   -500,-250,-125,-60,-30,-15,-8,-4,-2, \
   1,2,4,8,15,30,60,120,240,3600,7200,14400,28800};
-int aperatureValueTable[] = { 1,2,3,4,6,8, \
+const int aperatureValueTable[] = { 1,2,3,4,6,8, \
   11,22,32,45,64,90,128,181,256,362,512,724,1024};
+
 int solarPanelValue = 0;
+int lcdContrast = 50;
 
 float isoValue = 0;
 float timeValue = 0;
 float aperatureValue = 0;
-int lcdContrast = 50;
-int lastSolarPanelValue = -1;
 
 void setup()                    
 {
+
+  pinMode (upSwitch, INPUT);
+  pinMode (downSwitch, INPUT);
+  pinMode (lcdBackpanelLight, OUTPUT);
 //  Serial.begin(9600);
   
   display.begin(); // initialize display
@@ -45,6 +65,9 @@ void setup()
 
 void loop()                       
 {
+  byte brightness = 255;
+  analogWrite(lcdBackpanelLight, brightness);
+  
   display.display();
   solarPanelValue = getSolarPanelReading();
   drawMeter("f4.5", "1/1000", 3200 );
