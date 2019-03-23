@@ -210,18 +210,27 @@ void updateMeter (int meterValue){
     int xBottom;
     int yBottom;
     int outsideRadius = radius + markLength;
+    int markNumber=1;
 
     float Pi = 3.1415926;
-    float angle = 90*Pi/180.0; // trig functions are in radians!
+    int angleForEachMark = 180/(1+numberOfMarks);
+    int angleToPlaceMark = 90;
 
-    xTop = xCoordinate - int(outsideRadius*cos(angle));
-    yTop = yCoordinate - int(outsideRadius*abs(sin(angle)));
-
-    xBottom = xCoordinate - int(radius*cos(angle));
-    yBottom = yCoordinate - int(radius*abs(sin(angle)));
-
-    display.drawLine(xBottom, yBottom, xTop, yTop, BLACK);
-    display.display();  
+    while (markNumber <= numberOfMarks) {
+//      Serial.println("number of marks is "+String(numberOfMarks, DEC));
+      angleToPlaceMark = markNumber*angleForEachMark;
+      Serial.println("angle to place this mark is: "+String(angleToPlaceMark, DEC));
+      float angle = angleToPlaceMark*Pi/180.0; // trig functions are in radians!
+      xTop = xCoordinate - int(outsideRadius*cos(angle));
+      yTop = yCoordinate - int(outsideRadius*abs(sin(angle)));
+      xBottom = xCoordinate - int(radius*cos(angle));
+      yBottom = yCoordinate - int(radius*abs(sin(angle)));
+      display.drawLine(xBottom, yBottom, xTop, yTop, BLACK);
+      display.display();  
+      markNumber++;
+    }
+    
+    
 }
 
 /*********************
@@ -280,14 +289,14 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
       lastUpSwitchState = upSwitchState;
       if ( upSwitchState == 0 ) {
         lastChoice++;
-        Serial.println("Now your choice is "+String(lastChoice, DEC));
+//        Serial.println("Now your choice is "+String(lastChoice, DEC));
       }
     }
     
     if ( downSwitchState != lastDownSwitchState ) {
       if ( downSwitchState == 0 ) {
         lastChoice--;
-        Serial.println("Now your choice is "+String(lastChoice, DEC));
+//        Serial.println("Now your choice is "+String(lastChoice, DEC));
       }
     }
 
