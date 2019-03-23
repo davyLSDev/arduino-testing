@@ -3,6 +3,8 @@
  * Improvements
  * 
  * 1. put scale marks on
+ *    DONE: place scale marks
+ *    Don't calculate every display loop, too heavy, calculate once and keep in a vector
  * 2. use pot and two pushbutton switches to adjust 
  *    DONE: iso, fstop, shutter speed,
  *    DONE: (lcd backlight brightness?)
@@ -56,13 +58,30 @@ int lcdContrast = 50;
 int lastUpSwitchState = 1;
 int lastDownSwitchState = 1;
 int lastVariableChoice = 0;
+int pauseTime = 100;
 
 byte brightness;
+
 float isoIDX = 0;
 float shutterSpeedIDX = 0;
 float apertureIDX = 0;
 unsigned long debounceTimeValue = 0;
 
+const int numberOfScaleMarks = 5;
+struct coordinate {
+  int x;
+  int y;
+};
+
+struct coordinate needleBaseCoordinate = {43, 37};
+int scaleRadius = 25;
+int markLineLength = 4;
+struct coordinate markBottom[numberOfScaleMarks];
+struct coordinate markTop[numberOfScaleMarks];
+
+/********************
+ * setup
+ ********************/
 void setup()                    
 {
 
@@ -70,6 +89,7 @@ void setup()
   pinMode (downSwitch, INPUT);
   pinMode (lcdBackpanelLight, OUTPUT);
   Serial.begin(9600);
+  GetScaleMarkCoordinates (needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, numberOfScaleMarks, markLineLength);
   
   display.begin(); // initialize display
   display.setContrast(lcdContrast);
@@ -78,6 +98,9 @@ void setup()
   display.clearDisplay();
 }
 
+/********************
+ * loop
+ ********************/
 void loop()                       
 {
 /* variable register is used thus
@@ -89,60 +112,43 @@ void loop()
  *  
  *  The idea is that 
  */
-  int variableChoice; // = 4; // this will later change depending upon the up down switches
+  int variableChoice;
   variableChoice = getVariableChoice(debounceTimeValue, lastVariableChoice);
   lastVariableChoice = variableChoice;
-//  Serial.println("String(variableChoice));
   if (variableChoice !=0){
     updateVariables (variableChoice);
   }
-  
-//  Serial.println(String(isoTable[int(iso)], DEC));
-//  Serial.println(shutterSpeedTable[int(shutterSpeedIDX)]);
   analogWrite(lcdBackpanelLight, brightness);
- 
   solarPanel = getSolarPanelReading();
   drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]) );
   updateMeter (solarPanel);
   display.clearDisplay();
-  delay(100);
+  delay(pauseTime);
 }
 
 /*********************************************************************************
  * FUNCTIONS HERE 
  *********************************************************************************/
- 
 void drawMeter(String fstop, String shutter, int iso){
   byte upperLeftCorner = 0x1;
   byte upperRightCorner = 0x2;
 //  byte lowerRightCorner = 0x4;
 //  byte lowerLeftCorner = 0x8;
   byte scaleCorners = upperLeftCorner | upperRightCorner;
-
-  int numberOfScaleMarks = 5;
-//  int scaleMarksAlignment = 1; // 0 -> top, 1 -> centre, 2 -> bottom
-  int scaleLineLength = 4;
   int scaleBaseRadius = 6;
-  int scaleRadius = 25;
   int needleBaseFillWidth = 2;
   int bracketLength = 34;
   int bracketHeight = 8;
-
   String minusSign = "-";
   String plusSign = "+";
-   
-  struct coordinate {
-    int x;
-    int y;
-  };
-
+  
   struct coordinate fstopCoordinate = {0, 0};
   struct coordinate isoLableCoordinate = {0, 40};
   struct coordinate isoValueCoordinate = {60, 40};
   struct coordinate shutterSpeedCoordinate = {48, 0};
   struct coordinate leftBracketCoordinate = {0, 38};
   struct coordinate rightBracketCoordinate = {50, 38};
-  struct coordinate needleBaseCoordinate = {43, 37};
+//  struct coordinate needleBaseCoordinate = {43, 37};
   struct coordinate minusSignCoordinate = {28, 40};
   struct coordinate plusSignCoordinate = {52, 40};
   
@@ -176,9 +182,13 @@ void drawMeter(String fstop, String shutter, int iso){
 //  display.drawCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, BLACK);
   display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleBaseRadius, scaleCorners, BLACK);
   display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, scaleCorners, BLACK);
-  scaleMarks (needleBaseCoordinate.x, needleBaseCoordinate.y, numberOfScaleMarks, scaleRadius, scaleLineLength);
+// draw the scale marks  
+  scaleMarks (needleBaseCoordinate.x, needleBaseCoordinate.y, numberOfScaleMarks, scaleRadius, markLineLength);
 }
 
+/*********************
+ * update the meter 
+ *********************/ 
 void updateMeter (int meterValue){
   int xInit = 43;
   int yInit = 37;
@@ -198,13 +208,9 @@ void updateMeter (int meterValue){
 }
 
 /*********************
- *draw the scale marks 
- *********************/ 
-  void scaleMarks (int xCoordinate, int yCoordinate, int numberOfMarks, int radius, int markLength){
-//    int xInit = 43;
-//    int yInit = 37;
-//    int radius = 31;
-
+ * calculate the scale mark coordinates
+ *********************/
+  void GetScaleMarkCoordinates (int xCoordinate, int yCoordinate, int radius, int numberOfMarks, int markLength){
     int xTop;
     int yTop;
     int xBottom;
@@ -219,18 +225,29 @@ void updateMeter (int meterValue){
     while (markNumber <= numberOfMarks) {
 //      Serial.println("number of marks is "+String(numberOfMarks, DEC));
       angleToPlaceMark = markNumber*angleForEachMark;
-      Serial.println("angle to place this mark is: "+String(angleToPlaceMark, DEC));
+//      Serial.println("angle to place this mark is: "+String(angleToPlaceMark, DEC));
       float angle = angleToPlaceMark*Pi/180.0; // trig functions are in radians!
-      xTop = xCoordinate - int(outsideRadius*cos(angle));
-      yTop = yCoordinate - int(outsideRadius*abs(sin(angle)));
-      xBottom = xCoordinate - int(radius*cos(angle));
-      yBottom = yCoordinate - int(radius*abs(sin(angle)));
-      display.drawLine(xBottom, yBottom, xTop, yTop, BLACK);
-      display.display();  
+      markTop[markNumber-1].x = xCoordinate - int(outsideRadius*cos(angle));
+      markTop[markNumber-1].y = yCoordinate - int(outsideRadius*abs(sin(angle)));
+      markBottom[markNumber-1].x = xCoordinate - int(radius*cos(angle));
+      markBottom[markNumber-1].y = yCoordinate - int(radius*abs(sin(angle)));
+//      display.drawLine(xBottom, yBottom, xTop, yTop, BLACK);
+//      display.display();  // thought to place this after this while loop
+      markNumber++;
+    } 
+  }
+
+/*********************
+ * draw the scale marks 
+ *********************/ 
+  void scaleMarks (int xCoordinate, int yCoordinate, int numberOfMarks, int radius, int markLength){
+
+    int markNumber=1;
+    while (markNumber <= numberOfMarks) {
+      display.drawLine(markBottom[markNumber-1].x, markBottom[markNumber-1].y, markTop[markNumber-1].x, markTop[markNumber-1].y, BLACK);
+      display.display();  // thought to place this after this while loop
       markNumber++;
     }
-    
-    
 }
 
 /*********************
@@ -271,32 +288,16 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
 
   if ( (timeNow - lastTime ) >= debounceDelay){
     lastTime = timeNow;
-//    Serial.println("------------------------------------------------------------");
-//    Serial.println("Debounced upswitch value is "+String(upSwitchState, DEC));
-//    Serial.println("Debounced downswitch value is "+String(downSwitchState, DEC));
-//    Serial.println(" ");
-
     if ( upSwitchState != lastUpSwitchState ) {
-//      Serial.println(" ");
-//      Serial.println("Current up switch state " + String(upSwitchState, DEC));
-//      Serial.println("Last up switch state " + String(lastUpSwitchState, DEC));
-//      Serial.println("Current down switch state " + String(downSwitchState, DEC));  
-//      Serial.println("Last down switch state " + String(lastDownSwitchState, DEC));
-//      Serial.println(" ");
-//      Serial.println("This is your choice: "+String(lastChoice, DEC));
-//      Serial.println("**********************");
-//      Serial.println(" ");
       lastUpSwitchState = upSwitchState;
       if ( upSwitchState == 0 ) {
         lastChoice++;
-//        Serial.println("Now your choice is "+String(lastChoice, DEC));
       }
     }
     
     if ( downSwitchState != lastDownSwitchState ) {
       if ( downSwitchState == 0 ) {
         lastChoice--;
-//        Serial.println("Now your choice is "+String(lastChoice, DEC));
       }
     }
 
