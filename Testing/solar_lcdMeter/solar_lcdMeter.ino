@@ -48,8 +48,9 @@ const float apertureTable[] = { 1.4,2,2.8,4,5.6,8, \
 
 int solarPanel = 0;
 int lcdContrast = 50;
-int upSwitchStateLastState = 0;
-int downSwitchStateLastState = 0;
+int lastUpSwitchState = 1;
+int lastDownSwitchState = 1;
+int lastVariableChoice = 0;
 
 byte brightness;
 float isoIDX = 0;
@@ -83,11 +84,12 @@ void loop()
  *  
  *  The idea is that 
  */
-  int variableRegister; // = 4; // this will later change depending upon the up down switches
-  variableRegister = getVariableChoice(debounceTimeValue);
-  Serial.println(String(variableRegister));
-  if (variableRegister !=0){
-    updateVariables (variableRegister);
+  int variableChoice; // = 4; // this will later change depending upon the up down switches
+  variableChoice = getVariableChoice(debounceTimeValue, lastVariableChoice);
+  lastVariableChoice = variableChoice;
+//  Serial.println("String(variableChoice));
+  if (variableChoice !=0){
+    updateVariables (variableChoice);
   }
   
 //  Serial.println(String(isoTable[int(iso)], DEC));
@@ -101,6 +103,10 @@ void loop()
   delay(100);
 }
 
+/*********************************************************************************
+ * FUNCTIONS HERE 
+ *********************************************************************************/
+ 
 void drawMeter(String fstop, String shutter, int iso){
   byte upperLeftCorner = 0x1;
   byte upperRightCorner = 0x2;
@@ -202,7 +208,7 @@ int getSolarPanelReading(){
   return lightRange; 
 }
 
-int getVariableChoice(unsigned long lastTime){
+int getVariableChoice(unsigned long lastTime, int lastChoice){
 /*  0 -> don't change any of iso, fstop, or shutter speed
  *  1 -> change iso
  *  2 -> change shutter speed
@@ -219,17 +225,43 @@ int getVariableChoice(unsigned long lastTime){
 
   int upSwitchState = digitalRead(upSwitch);
   int downSwitchState = digitalRead(downSwitch);
+  int choice = 0;
 //  Serial.println("up is "+String(upSwitchState));
 //  Serial.println("down is "+String(downSwitchState));
 
   if ( (timeNow - lastTime ) >= debounceDelay){
     lastTime = timeNow;
-    Serial.println("------------------------------------------------------------");
-    Serial.println("Debounced upswitch value is "+String(upSwitchState, DEC));
-    Serial.println("Debounced downswitch value is "+String(downSwitchState, DEC));
-    Serial.println(" ");    
+//    Serial.println("------------------------------------------------------------");
+//    Serial.println("Debounced upswitch value is "+String(upSwitchState, DEC));
+//    Serial.println("Debounced downswitch value is "+String(downSwitchState, DEC));
+//    Serial.println(" ");
+
+    if ( upSwitchState != lastUpSwitchState ) {
+      Serial.println(" ");
+      Serial.println("Current up switch state " + String(upSwitchState, DEC));
+      Serial.println("Last up switch state " + String(lastUpSwitchState, DEC));
+      Serial.println("Current down switch state " + String(downSwitchState, DEC));  
+      Serial.println("Last down switch state " + String(lastDownSwitchState, DEC));
+      Serial.println(" ");
+      Serial.println("This is your choice: "+String(lastChoice, DEC));
+      Serial.println("**********************");
+      Serial.println(" ");
+      lastUpSwitchState = upSwitchState;
+      if ( upSwitchState == 0 ) {
+        lastChoice++;
+        Serial.println("Now your choice is "+String(lastChoice, DEC));
+      }
+    }
+    
+    if ( downSwitchState != lastDownSwitchState ) {
+      if ( downSwitchState == 0 ) lastChoice--;
+    }
+
+    if ( lastChoice > 4 ) lastChoice = 0; // wraparound
+    if ( lastChoice < 0 ) lastChoice = 4;
   }
   
+  return lastChoice;
 }
 
 void updateVariables (int updateVariableChoice){
