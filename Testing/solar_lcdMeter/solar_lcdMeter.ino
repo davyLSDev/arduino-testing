@@ -1,10 +1,15 @@
 /* Sketch for creating an lcd solar panel meter
  * 
- * improvements
+ * Improvements
+ * 
  * 1. put scale marks on
- * 2. use pot and two pushbutton switches to adjust iso, fstop, shutter speed,
- *    (lcd backlight brightness?)
- *    add UI to the LCD panel to let user know which value is being changed
+ * 2. use pot and two pushbutton switches to adjust 
+ *    DONE: iso, fstop, shutter speed,
+ *    DONE: (lcd backlight brightness?)
+ *    Add UI to the LCD panel to let user know which value is being changed.
+ *    Don't change value by only reading the pot value as this leads to values
+ *      changing values when the up down buttons are pressed because the pot
+ *      position is at the last position for the last value that was changed.
  * 3. Calibrate the meter
  *    add a trim pot for calibration?
  * 4. update the UI (sketch in Dia first maybe?)
@@ -171,9 +176,6 @@ void drawMeter(String fstop, String shutter, int iso){
 //  display.drawCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, BLACK);
   display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleBaseRadius, scaleCorners, BLACK);
   display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, scaleCorners, BLACK);
-
-// draw the scale marks
-
   scaleMarks (needleBaseCoordinate.x, needleBaseCoordinate.y, numberOfScaleMarks, scaleRadius, scaleLineLength);
 }
 
@@ -194,11 +196,37 @@ void updateMeter (int meterValue){
   display.drawLine(xInit, yInit, xTip, yTip, BLACK);
   display.display();
 }
-  
+
+/*********************
+ *draw the scale marks 
+ *********************/ 
   void scaleMarks (int xCoordinate, int yCoordinate, int numberOfMarks, int radius, int markLength){
-   
+//    int xInit = 43;
+//    int yInit = 37;
+//    int radius = 31;
+
+    int xTop;
+    int yTop;
+    int xBottom;
+    int yBottom;
+    int outsideRadius = radius + markLength;
+
+    float Pi = 3.1415926;
+    float angle = 90*Pi/180.0; // trig functions are in radians!
+
+    xTop = xCoordinate - int(outsideRadius*cos(angle));
+    yTop = yCoordinate - int(outsideRadius*abs(sin(angle)));
+
+    xBottom = xCoordinate - int(radius*cos(angle));
+    yBottom = yCoordinate - int(radius*abs(sin(angle)));
+
+    display.drawLine(xBottom, yBottom, xTop, yTop, BLACK);
+    display.display();  
 }
 
+/*********************
+ * fetch the solar panel voltage 
+ *********************/
 int getSolarPanelReading(){
 // Tweak these next values for light reading  
   const int minLight = 0;
@@ -208,6 +236,9 @@ int getSolarPanelReading(){
   return lightRange; 
 }
 
+/*********************
+ * fetch the variable choice
+ *********************/
 int getVariableChoice(unsigned long lastTime, int lastChoice){
 /*  0 -> don't change any of iso, fstop, or shutter speed
  *  1 -> change iso
@@ -237,15 +268,15 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
 //    Serial.println(" ");
 
     if ( upSwitchState != lastUpSwitchState ) {
-      Serial.println(" ");
-      Serial.println("Current up switch state " + String(upSwitchState, DEC));
-      Serial.println("Last up switch state " + String(lastUpSwitchState, DEC));
-      Serial.println("Current down switch state " + String(downSwitchState, DEC));  
-      Serial.println("Last down switch state " + String(lastDownSwitchState, DEC));
-      Serial.println(" ");
-      Serial.println("This is your choice: "+String(lastChoice, DEC));
-      Serial.println("**********************");
-      Serial.println(" ");
+//      Serial.println(" ");
+//      Serial.println("Current up switch state " + String(upSwitchState, DEC));
+//      Serial.println("Last up switch state " + String(lastUpSwitchState, DEC));
+//      Serial.println("Current down switch state " + String(downSwitchState, DEC));  
+//      Serial.println("Last down switch state " + String(lastDownSwitchState, DEC));
+//      Serial.println(" ");
+//      Serial.println("This is your choice: "+String(lastChoice, DEC));
+//      Serial.println("**********************");
+//      Serial.println(" ");
       lastUpSwitchState = upSwitchState;
       if ( upSwitchState == 0 ) {
         lastChoice++;
@@ -254,7 +285,10 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
     }
     
     if ( downSwitchState != lastDownSwitchState ) {
-      if ( downSwitchState == 0 ) lastChoice--;
+      if ( downSwitchState == 0 ) {
+        lastChoice--;
+        Serial.println("Now your choice is "+String(lastChoice, DEC));
+      }
     }
 
     if ( lastChoice > 4 ) lastChoice = 0; // wraparound
@@ -264,6 +298,9 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
   return lastChoice;
 }
 
+/*********************
+ * update the variables
+ *********************/
 void updateVariables (int updateVariableChoice){
   const int minBrightness = 0;
   const int maxBrightness = 255;
