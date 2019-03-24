@@ -1,4 +1,9 @@
-//Doesn't appear to work
+#include <Adafruit_GFX.h>
+#include <gfxfont.h>
+#include <Adafruit_SPITFT.h>
+#include <Adafruit_SPITFT_Macros.h>
+
+//Doesn't appear to work, put this line in and it does: SPI.setClockDivider(SPI_CLOCK_DIV16);
 /* Nokia 5100 LCD Example Code
    Graphics driver and PCD8544 interface code for SparkFun's
    84x48 Graphic LCD.
@@ -38,6 +43,7 @@
    between the LCD's LED pin and Arduino pin 9!
 */
 #include <SPI.h>
+#include <Adafruit_GFX.h>
 #include "LCD_Functions.h"
 
 /* This array is the same size as the displayMap. We'll use it
@@ -82,7 +88,7 @@ static const char xkcdSandwich[504] PROGMEM = {
 void setup()
 {
   Serial.begin(9600);
-
+  SPI.setClockDivider(SPI_CLOCK_DIV16); // I had to add this in to get harware SPI to work!
   lcdBegin(); // This will setup our pins, and initialize the LCD
   updateDisplay(); // with displayMap untouched, SFE logo
   setContrast(10); // Good values range from 40-60
@@ -283,4 +289,6 @@ void lcdFunTime()
   // as our screen.
   setBitmap(xkcdSandwich);
   updateDisplay();
+
+  delay(300);
 }

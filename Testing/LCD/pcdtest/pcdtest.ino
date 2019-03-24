@@ -1,4 +1,4 @@
-// Can't seem to get hardware SPI to work
+// This works fine
 
 /*********************************************************************
 This is an example sketch for our Monochrome Nokia 5110 LCD Displays
@@ -18,7 +18,7 @@ BSD license, check license.txt for more information
 All text above, and the splash screen must be included in any redistribution
 *********************************************************************/
 
-#include <SPI.h>
+// this is not needed it seems #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 
@@ -28,8 +28,9 @@ All text above, and the splash screen must be included in any redistribution
 // pin 5 - Data/Command select (D/C)
 // pin 4 - LCD chip select (CS)
 // pin 3 - LCD reset (RST)
-// Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
-// * dont use this * Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 7, 6);
+//Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, 5, 7, 6);
+// does not seem to work: Adafruit_PCD8544 display = Adafruit_PCD8544(5, 7, 6);
 
 // Hardware SPI (faster, but must use certain hardware pins):
 // SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
@@ -38,7 +39,6 @@ All text above, and the splash screen must be included in any redistribution
 // pin 4 - LCD chip select (CS)
 // pin 3 - LCD reset (RST)
 // Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
-Adafruit_PCD8544 display = Adafruit_PCD8544(5, 7, 6);
 // Note with hardware SPI MISO and SS pins aren't used but will still be read
 // and written to during SPI transfer.  Be careful sharing these pins!
 
@@ -71,10 +71,10 @@ static const unsigned char PROGMEM logo16_glcd_bmp[] =
 
 void setup()   {
   Serial.begin(9600);
-
+  SPI.setClockDivider(SPI_CLOCK_DIV32);
   display.begin();
   // init done
-
+  
   // you can change the contrast around to adapt the display
   // for the best viewing!
   display.setContrast(50);
@@ -156,7 +156,7 @@ void setup()   {
 
   // rotation example
   display.clearDisplay();
-  display.setRotation(2);  // rotate 90 degrees counter clockwise, can also use values of 2 and 3 to go further.
+  display.setRotation(1);  // rotate 90 degrees counter clockwise, can also use values of 2 and 3 to go further.
   display.setTextSize(1);
   display.setTextColor(BLACK);
   display.setCursor(0,0);
@@ -223,9 +223,9 @@ void testdrawbitmap(const uint8_t *bitmap, uint8_t w, uint8_t h) {
       icons[f][YPOS] += icons[f][DELTAY];
       // if its gone, reinit
       if (icons[f][YPOS] > display.height()) {
-	icons[f][XPOS] = random(display.width());
-	icons[f][YPOS] = 0;
-	icons[f][DELTAY] = random(5) + 1;
+  icons[f][XPOS] = random(display.width());
+  icons[f][YPOS] = 0;
+  icons[f][DELTAY] = random(5) + 1;
       }
     }
    }

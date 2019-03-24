@@ -4,24 +4,24 @@
  * 
  * 1. put scale marks on
  *    DONE: place scale marks
- *    Don't calculate every display loop, too heavy, calculate once and keep in a vector
+ *    DONE: Don't calculate every display loop, too heavy, calculate once and keep in a vector
  * 2. use pot and two pushbutton switches to adjust 
  *    DONE: iso, fstop, shutter speed,
  *    DONE: (lcd backlight brightness?)
- *    Add UI to the LCD panel to let user know which value is being changed.
+ *    DONE: Add UI to the LCD panel to let user know which value is being changed.
  *    Don't change value by only reading the pot value as this leads to values
  *      changing values when the up down buttons are pressed because the pot
  *      position is at the last position for the last value that was changed.
  * 3. Calibrate the meter
  *    add a trim pot for calibration?
- * 4. update the UI (sketch in Dia first maybe?)
+ * 4. DONE: update the UI (sketch in Dia first maybe?)
  * 5. make provision for times > 1 sec with more precision
  * 6. make provision for wider apertures, and other intermediate values
- * 7. change lcd contrast (I didn't notice a great amount of diff in values though)
+ * 7. make provision to change lcd contrast (I didn't notice a great amount of diff in values though)
  * 8. Get rid of global variables that are unneeded
  * 
  */
-
+ 
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 
@@ -31,7 +31,9 @@
 // Arduino pin 5 - Data/Command select (D/C)
 // Arduino pin 6 - LCD reset (RST)
 // Arduino pin 7 - LCD chip enable (SCE)
-Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 7, 6);
+//Adafruit_PCD8544 display = Adafruit_PCD8544(3, 4, 5, 7, 6);
+Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, 5, 7, 6);
+// harware SPI not working => Adafruit_PCD8544 display = Adafruit_PCD8544(5, 7 ,6);
 
 /* Arduino pin A1 A1 -> pot
   * Arduino pin  8  -> LH switch (up)
@@ -52,13 +54,14 @@ const String shutterSpeedTable[] = {"1/1000", \
   "00:01","00:02","00:04","00:08","00:15","00:30","00:60","02:00","04:00","08:00","16:00","32:00","1:04 H"};
 const float apertureTable[] = { 1.4,2,2.8,4,5.6,8, \
   11,22,32,45,64,90,128,181,256,362,512,724,1024};
+const String changeLable[] = {"", "ISO", "SPD", " F#", " LT"};
 
 int solarPanel = 0;
 int lcdContrast = 50;
 int lastUpSwitchState = 1;
 int lastDownSwitchState = 1;
 int lastVariableChoice = 0;
-int pauseTime = 100;
+int pauseTime = 200;
 
 byte brightness;
 
@@ -67,14 +70,15 @@ float shutterSpeedIDX = 0;
 float apertureIDX = 0;
 unsigned long debounceTimeValue = 0;
 
-const int numberOfScaleMarks = 5;
+const int numberOfScaleMarks = 5; // 3 gives lots less flicker
 struct coordinate {
   int x;
   int y;
 };
 
-struct coordinate needleBaseCoordinate = {43, 37};
-int scaleRadius = 25;
+struct coordinate needleBaseCoordinate = {32, 47};
+int needleRadius = 38; //31
+int scaleRadius = 32; //25
 int markLineLength = 4;
 struct coordinate markBottom[numberOfScaleMarks];
 struct coordinate markTop[numberOfScaleMarks];
@@ -84,7 +88,7 @@ struct coordinate markTop[numberOfScaleMarks];
  ********************/
 void setup()                    
 {
-
+//  SPI.setClockDivider(SPI_CLOCK_DIV16); // I had to add this in to get harware SPI to work, except it doesn't
   pinMode (upSwitch, INPUT);
   pinMode (downSwitch, INPUT);
   pinMode (lcdBackpanelLight, OUTPUT);
@@ -120,8 +124,9 @@ void loop()
   }
   analogWrite(lcdBackpanelLight, brightness);
   solarPanel = getSolarPanelReading();
-  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]) );
+  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
   updateMeter (solarPanel);
+// DEBUG TEMP to see if this can stop the blinking  
   display.clearDisplay();
   delay(pauseTime);
 }
@@ -129,7 +134,7 @@ void loop()
 /*********************************************************************************
  * FUNCTIONS HERE 
  *********************************************************************************/
-void drawMeter(String fstop, String shutter, int iso){
+void drawMeter(String fstop, String shutter, int iso, int changeVariable){
   byte upperLeftCorner = 0x1;
   byte upperRightCorner = 0x2;
 //  byte lowerRightCorner = 0x4;
@@ -142,25 +147,29 @@ void drawMeter(String fstop, String shutter, int iso){
   String minusSign = "-";
   String plusSign = "+";
   
-  struct coordinate fstopCoordinate = {0, 0};
-  struct coordinate isoLableCoordinate = {0, 40};
-  struct coordinate isoValueCoordinate = {60, 40};
+  struct coordinate isoValueCoordinate = {0, 0};
+  struct coordinate changeLableCoordinate = {66, 40};
+  struct coordinate fstopCoordinate = {54, 10};
   struct coordinate shutterSpeedCoordinate = {48, 0};
-  struct coordinate leftBracketCoordinate = {0, 38};
-  struct coordinate rightBracketCoordinate = {50, 38};
-//  struct coordinate needleBaseCoordinate = {43, 37};
-  struct coordinate minusSignCoordinate = {28, 40};
-  struct coordinate plusSignCoordinate = {52, 40};
+/*  struct coordinate leftBracketCoordinate = {0, 38};
+  struct coordinate rightBracketCoordinate = {50, 38};*/
+  struct coordinate minusSignCoordinate = {16, 40};
+  struct coordinate plusSignCoordinate = {42, 40};
   
   display.clearDisplay();
   
 // lables
   display.setCursor(fstopCoordinate.x, fstopCoordinate.y);
-  display.println(fstop);
+  display.println(fstop.substring(0, 5));
   display.setCursor(shutterSpeedCoordinate.x, shutterSpeedCoordinate.y);
   display.println(shutter);
-  display.setCursor(isoLableCoordinate.x, isoLableCoordinate.y);
-  display.println("ISO");
+
+  if (changeVariable !=0){
+    display.setCursor(changeLableCoordinate.x, changeLableCoordinate.y);
+    display.println(changeLable[changeVariable]);
+  }
+  
+  
   display.setCursor(isoValueCoordinate.x, isoValueCoordinate.y);
   display.println(String (iso));
   display.setCursor(minusSignCoordinate.x, minusSignCoordinate.y);
@@ -168,11 +177,11 @@ void drawMeter(String fstop, String shutter, int iso){
   display.setCursor(plusSignCoordinate.x, plusSignCoordinate.y);
   display.println(plusSign);
 
-// draw the meter bottom brackets
+/* DON'T BOTHER TO draw the meter bottom brackets
   display.drawFastHLine(leftBracketCoordinate.x, leftBracketCoordinate.y, bracketLength, BLACK);
   display.drawFastVLine(leftBracketCoordinate.x+bracketLength, leftBracketCoordinate.y, bracketHeight, BLACK);
   display.drawFastHLine(rightBracketCoordinate.x, rightBracketCoordinate.y, bracketLength, BLACK);
-  display.drawFastVLine(rightBracketCoordinate.x, rightBracketCoordinate.y, bracketHeight, BLACK);
+  display.drawFastVLine(rightBracketCoordinate.x, rightBracketCoordinate.y, bracketHeight, BLACK); */
   
 // draw the centre of the needle  
   display.fillCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, needleBaseFillWidth, BLACK);
@@ -190,9 +199,6 @@ void drawMeter(String fstop, String shutter, int iso){
  * update the meter 
  *********************/ 
 void updateMeter (int meterValue){
-  int xInit = 43;
-  int yInit = 37;
-  int radius = 31;
 
   int xTip;
   int yTip;
@@ -200,10 +206,10 @@ void updateMeter (int meterValue){
   float Pi = 3.1415926;
   float angle = meterValue*Pi/100.0; // trig functions are in radians!
 
-  xTip = xInit - int(radius*cos(angle));
-  yTip = yInit - int(radius*abs(sin(angle)));
+  xTip = needleBaseCoordinate.x - int(needleRadius*cos(angle));
+  yTip = needleBaseCoordinate.y - int(needleRadius*abs(sin(angle)));
 
-  display.drawLine(xInit, yInit, xTip, yTip, BLACK);
+  display.drawLine(needleBaseCoordinate.x, needleBaseCoordinate.y, xTip, yTip, BLACK);
   display.display();
 }
 
