@@ -128,11 +128,11 @@ void loop()
   }
   analogWrite(lcdBackpanelLight, brightness);
   solarPanel = getSolarPanelReading();
-//  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
-//  updateMeter (solarPanel);
-//  display.setCursor(0,0);
+  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+  updateMeter (solarPanel);
+  display.setCursor(0,0);
 //  testSetupScreen ();
-    testBarMeter();
+//    testBarMeter();
 //  drawBarMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
 //  updateBarMeter (solarPanel);
   
