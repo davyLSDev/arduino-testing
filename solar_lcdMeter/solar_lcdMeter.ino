@@ -79,7 +79,7 @@ struct coordinate {
   int y;
 };
 
-struct coordinate needleBaseCoordinate = {32, 47};
+struct coordinate needleBaseCoordinate = { 40, 47}; // to the left most {32, 47};
 int needleRadius = 38; //31
 int scaleRadius = 32; //25
 int markLineLength = 4;
@@ -116,14 +116,16 @@ void loop()
   variableChoice = getVariables();
   analogWrite(lcdBackpanelLight, brightness);
   solarPanel = getSolarPanelReading();
-// TEMP  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+//  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+  drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+
   updateMeter (solarPanel);
 // do I really need this line?  display.setCursor(0,0);
 //  testSetupScreen ();
 //    testBarMeter();
 //  drawBarMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
 //  updateBarMeter (solarPanel);
-  recalibrateScreen();
+//  recalibrateScreen();
   delay(pauseTime);
 
 }
@@ -169,27 +171,27 @@ int getVariables() {
 }
 
 /*********************
- * draw the meter 
+ * draw the meter VU style 
  *********************/ 
-void drawMeter(String fstop, String shutter, int iso, int changeVariable){
-  byte upperLeftCorner = 0x1;
-  byte upperRightCorner = 0x2;
-//  byte lowerRightCorner = 0x4;
-//  byte lowerLeftCorner = 0x8;
-  byte scaleCorners = upperLeftCorner | upperRightCorner;
+void drawVUMeter(String fstop, String shutter, int iso, int changeVariable){
+  byte upperLeftArc = 0x1;
+  byte upperRightArc = 0x2;
+//  byte lowerRightArc = 0x4;
+//  byte lowerLeftArc = 0x8;
+  byte scaleArcs = upperLeftArc | upperRightArc;
   int scaleBaseRadius = 6;
   int needleBaseFillWidth = 2;
-  int bracketLength = 34;
-  int bracketHeight = 8;
+  
   String minusSign = "-";
   String plusSign = "+";
   
-  struct coordinate isoValueCoordinate = {0, 0};
-  struct coordinate changeLableCoordinate = {66, 40};
-  struct coordinate fstopCoordinate = {54, 10};
-  struct coordinate shutterSpeedCoordinate = {48, 0};
-  struct coordinate minusSignCoordinate = {16, 40};
-  struct coordinate plusSignCoordinate = {42, 40};
+//  struct coordinate isoValueCoordinate = {0, 0};
+//  struct coordinate changeLableCoordinate = {66, 40};
+  struct coordinate fstopCoordinate = {48, 0}; //{54, 10};
+  struct coordinate shutterSpeedCoordinate = { 0, 0}; // {48, 0};
+  
+  struct coordinate minusSignCoordinate = { 24, 40}; // all the way to the left {16, 40};
+  struct coordinate plusSignCoordinate = { 50, 40}; // all the way to the left {42, 40};
   
   display.clearDisplay();
   
@@ -200,31 +202,24 @@ void drawMeter(String fstop, String shutter, int iso, int changeVariable){
   display.println(shutter);
 
   if (changeVariable !=0){
-    display.setCursor(changeLableCoordinate.x, changeLableCoordinate.y);
-    display.println(changeLable[changeVariable]);
+//    display.setCursor(changeLableCoordinate.x, changeLableCoordinate.y);
+//    display.println(changeLable[changeVariable]);
   }
   
-  display.setCursor(isoValueCoordinate.x, isoValueCoordinate.y);
-  display.println(String (iso));
+//  display.setCursor(isoValueCoordinate.x, isoValueCoordinate.y);
+//  display.println(String (iso));
   display.setCursor(minusSignCoordinate.x, minusSignCoordinate.y);
   display.println(minusSign);
   display.setCursor(plusSignCoordinate.x, plusSignCoordinate.y);
   display.println(plusSign);
 
-/* DON'T BOTHER TO draw the meter bottom brackets
-  display.drawFastHLine(leftBracketCoordinate.x, leftBracketCoordinate.y, bracketLength, BLACK);
-  display.drawFastVLine(leftBracketCoordinate.x+bracketLength, leftBracketCoordinate.y, bracketHeight, BLACK);
-  display.drawFastHLine(rightBracketCoordinate.x, rightBracketCoordinate.y, bracketLength, BLACK);
-  display.drawFastVLine(rightBracketCoordinate.x, rightBracketCoordinate.y, bracketHeight, BLACK); */
-  
 // draw the centre of the needle  
   display.fillCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, needleBaseFillWidth, BLACK);
   display.display();
 
 // draw the meter's scale using circle segments
-//  display.drawCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, BLACK);
-  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleBaseRadius, scaleCorners, BLACK);
-  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, scaleCorners, BLACK);
+  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleBaseRadius, scaleArcs, BLACK);
+  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, scaleArcs, BLACK);
 // draw the scale marks  
   scaleMarks (needleBaseCoordinate.x, needleBaseCoordinate.y, numberOfScaleMarks, scaleRadius, markLineLength);
 }
