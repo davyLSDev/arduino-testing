@@ -114,13 +114,12 @@ void setup()
 void loop()                       
 {
   variableChoice = getVariables();
-  analogWrite(lcdBackpanelLight, brightness);
+  updateLCD(variableChoice);
+  
   solarPanel = getSolarPanelReading();
-//  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
-  drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+//  drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+//  updateMeter (solarPanel);
 
-  updateMeter (solarPanel);
-// do I really need this line?  display.setCursor(0,0);
 //  testSetupScreen ();
 //    testBarMeter();
 //  drawBarMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
@@ -169,6 +168,47 @@ int getVariables() {
   }
   return variableChoice;
 }
+
+/*********************
+ * update LCD panel 
+ *********************/
+void updateLCD(int updateItem){
+// VU meter, 1 for bargraph *** this will change with the pot setting
+  int meterStyle = 0; 
+    
+  switch(updateItem) {
+    case 0:
+      setupScreen (updateItem, meterStyle);
+      break;
+    case 1:
+      setupScreen (updateItem, meterStyle);
+      analogWrite(lcdBackpanelLight, brightness);
+      break;
+    case 2:
+      setupScreen (updateItem, meterStyle);
+      display.setContrast(lcdContrast);
+      break;
+    case 3:
+      setupScreen (updateItem, meterStyle);
+      break;
+    case 4:
+      setupScreen (updateItem, meterStyle);
+      break;
+    case 5:
+      setupScreen (updateItem, meterStyle);
+      break;
+    case 6: // change shutter
+      drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+      updateMeter (solarPanel);
+      break;
+    case 7: // change fstop
+      drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+      updateMeter (solarPanel);
+      break;
+  }
+        
+}
+  
 
 /*********************
  * draw the meter VU style 
@@ -368,6 +408,7 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
   int upSwitchState = digitalRead(upSwitch);
   int downSwitchState = digitalRead(downSwitch);
   int choice = 0;
+  int numberOfChoices = 8-1; // counting starts at zero
 
   if ( (timeNow - lastTime ) >= debounceDelay){
     lastTime = timeNow;
@@ -384,10 +425,10 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
       }
     }
 
-    if ( lastChoice > 4 ) lastChoice = 0; // wraparound
-    if ( lastChoice < 0 ) lastChoice = 4;
+    if ( lastChoice > numberOfChoices ) lastChoice = 0; // wraparound
+    if ( lastChoice < 0 ) lastChoice = numberOfChoices;
   }
-  
+  Serial.println("Choice number is "+String(lastChoice));
   return lastChoice;
 }
 
