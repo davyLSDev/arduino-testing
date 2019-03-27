@@ -86,6 +86,8 @@ int markLineLength = 4;
 struct coordinate markBottom[numberOfScaleMarks];
 struct coordinate markTop[numberOfScaleMarks];
 
+int variableChoice = 0;
+
 /********************
  * setup
  ********************/
@@ -111,31 +113,17 @@ void setup()
  ********************/
 void loop()                       
 {
-/* variable register is used thus
- *  0 -> don't change any of iso, fstop, or shutter speed
- *  1 -> change iso
- *  2 -> change shutter speed
- *  3 -> change fstop
- *  4 -> change the lcd backlight brightness
- *  
- *  The idea is that 
- */
-  int variableChoice;
-  variableChoice = getVariableChoice(debounceTimeValue, lastVariableChoice);
-  lastVariableChoice = variableChoice;
-  if (variableChoice !=0){
-    updateVariables (variableChoice);
-  }
+  variableChoice = getVariables();
   analogWrite(lcdBackpanelLight, brightness);
   solarPanel = getSolarPanelReading();
-  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+// TEMP  drawMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
   updateMeter (solarPanel);
-  display.setCursor(0,0);
+// do I really need this line?  display.setCursor(0,0);
 //  testSetupScreen ();
 //    testBarMeter();
 //  drawBarMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
 //  updateBarMeter (solarPanel);
-  
+  recalibrateScreen();
   delay(pauseTime);
 
 }
@@ -143,6 +131,46 @@ void loop()
 /*********************************************************************************
  * FUNCTIONS HERE 
  *********************************************************************************/
+
+/*********************
+ * get variables 
+ *********************/ 
+int getVariables() {
+  /* variable register is used thus
+ *  0 -> don't change any of iso, fstop, or shutter speed
+ *  1 -> change iso
+ *  2 -> change shutter speed
+ *  3 -> change fstop
+ *  4 -> change the lcd backlight brightness
+ *  
+ *  
+ *  Refactor this to
+ *  
+ *  (screen is in recalibrate control screen mode)
+ *  0 -> don't change any variables (this could also be used to recalibrate pot)
+ *  
+ *  (screen is in setup screen mode)
+ *  1 -> change LCD brightness
+ *  2 -> change LCD contrast
+ *  3 -> change ISO 
+ *  4 -> change option for light meter display to vu meter mode (VU mode)
+ *  5 -> change option for light meter display to bar graph mode (bargraph mode)
+ *
+ *  (the following are displayed in either of the light meter display modes)
+ *  6 -> change shutter speed
+ *  7 -> change fstop
+ */
+  variableChoice = getVariableChoice(debounceTimeValue, lastVariableChoice);
+  lastVariableChoice = variableChoice;
+  if (variableChoice !=0){
+    updateVariables (variableChoice);
+  }
+  return variableChoice;
+}
+
+/*********************
+ * draw the meter 
+ *********************/ 
 void drawMeter(String fstop, String shutter, int iso, int changeVariable){
   byte upperLeftCorner = 0x1;
   byte upperRightCorner = 0x2;
@@ -160,8 +188,6 @@ void drawMeter(String fstop, String shutter, int iso, int changeVariable){
   struct coordinate changeLableCoordinate = {66, 40};
   struct coordinate fstopCoordinate = {54, 10};
   struct coordinate shutterSpeedCoordinate = {48, 0};
-/*  struct coordinate leftBracketCoordinate = {0, 38};
-  struct coordinate rightBracketCoordinate = {50, 38};*/
   struct coordinate minusSignCoordinate = {16, 40};
   struct coordinate plusSignCoordinate = {42, 40};
   
@@ -177,7 +203,6 @@ void drawMeter(String fstop, String shutter, int iso, int changeVariable){
     display.setCursor(changeLableCoordinate.x, changeLableCoordinate.y);
     display.println(changeLable[changeVariable]);
   }
-  
   
   display.setCursor(isoValueCoordinate.x, isoValueCoordinate.y);
   display.println(String (iso));
@@ -307,13 +332,14 @@ void updateBarMeter (int meterValue){
 
 /********************
  * test the bar meter
- */
+ ********************/
 void testBarMeter(){
  for (int test = 0; test < 73; test++) {
     updateBarMeter(test);
     display.clearDisplay();
   }
 }
+
 /*********************
  * fetch the solar panel voltage 
  *********************/
@@ -408,13 +434,31 @@ void updateVariables (int updateVariableChoice){
 }
 
 /*********************
+ * recalibrate screen
+ *********************/
+void recalibrateScreen (){
+  struct coordinate title = { 0, 0};
+  struct coordinate underline = {title.x, title.y+8};
+  struct coordinate instructions = { 0, 10};
+  String titleText = "Recalibrate";
+  String instructionsText = "Change the    control with  no change to  any settings.";
+
+  display.setCursor(title.x, title.y);
+  display.println(titleText);
+  display.drawLine(underline.x, underline.y, underline.x+83, underline.y, BLACK);
+  display.setCursor(instructions.x, instructions.y);
+  display.println(instructionsText);
+  display.display();  
+}
+
+/*********************
  * setupScreen,
  *  where selection is:
  *    0 - LCD Brightness
  *    1 - LCD Contrast
  *    2 - ISO
- *    3 - Meter needle like vu meter
- *    4 - Meter needle like bargraph
+ *    3 - VU meter style
+ *    4 - Bargraph style indicator
  *    
  *  where needleStyle is:
  *    0 - vu style meter
