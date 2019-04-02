@@ -518,6 +518,7 @@ void setupScreen (int select, int needleStyle){
   struct coordinate selection = {0, 0};
   
   String selectionIndicator = "*>";
+  String clearSelectionIndicator = "  ";
   String selectedOption = "(*)";
   String unselectedOption = "( )";
   String meterNeedleOptionValue = selectedOption;
@@ -550,26 +551,42 @@ void setupScreen (int select, int needleStyle){
       meterBarOptionValue = selectedOption;
       break;
   }
-      
+  
+  display.clearDisplay();
   display.setCursor(title.x, title.y);
   display.println("Setup Screen");
   display.drawLine(underline.x, underline.y, underline.x+83, underline.y, BLACK);
-  display.setCursor(selection.x, selection.y);
-  display.println(selectionIndicator);
+  
+  display.setCursor(brightnessSelect.x, brightnessSelect.y);
+  display.println(clearSelectionIndicator);
   display.setCursor(brightness.x, brightness.y);
   display.println("brightness");
+  
+  display.setCursor(contrastSelect.x, contrast.y);
+  display.println(clearSelectionIndicator);
   display.setCursor(contrast.x, contrast.y);
   display.println("contrast");
+  
+  display.setCursor(isoSelect.x, isoSelect.y);
+  display.println(clearSelectionIndicator);
   display.setCursor(iso.x, iso.y);
   display.println("ISO");
+  
+  display.setCursor(meterNeedleSelect.x, meterNeedleSelect.y);
+  display.println(clearSelectionIndicator);
   display.setCursor(meterNeedle.x, meterNeedle.y);
   display.println("meter");
+  
   display.setCursor(meterNeedleOption.x, meterNeedleOption.y);
   display.println(meterNeedleOptionValue);
   display.setCursor(meterBar.x, meterBar.y);
   display.println("bargraph");
+  
   display.setCursor(meterBarOption.x, meterBarOption.y);
   display.println(meterBarOptionValue);
+  
+  display.setCursor(selection.x, selection.y);
+  display.println(selectionIndicator);
   display.display();
 }
 
