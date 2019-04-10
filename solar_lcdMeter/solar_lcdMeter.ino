@@ -65,8 +65,9 @@ int lastUpSwitchState = 1;
 int lastDownSwitchState = 1;
 int lastVariableChoice = 0;
 int pauseTime = 200;
+int meterStyle = 0;
 
-byte brightness = 127;
+byte lcdBrightness = 127;
 
 float isoIDX = 0;
 float shutterSpeedIDX = 0;
@@ -101,7 +102,7 @@ void setup()
   GetScaleMarkCoordinates (needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, numberOfScaleMarks, markLineLength);
   
   display.begin(); // initialize display
-  analogWrite(lcdBackpanelLight, brightness);
+  analogWrite(lcdBackpanelLight, lcdBrightness);
   display.setContrast(lcdContrast);
   display.setTextSize(1);
   display.setRotation(2);
@@ -113,10 +114,10 @@ void setup()
  ********************/
 void loop()                       
 {
+  solarPanel = getSolarPanelReading();
   variableChoice = getVariables();
   updateLCD(variableChoice);
   
-  solarPanel = getSolarPanelReading();
 //  drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
 //  updateMeter (solarPanel);
 
@@ -138,28 +139,21 @@ void loop()
  *********************/ 
 int getVariables() {
   /* variable register is used thus
- *  0 -> don't change any of iso, fstop, or shutter speed
- *  1 -> change iso
- *  2 -> change shutter speed
- *  3 -> change fstop
- *  4 -> change the lcd backlight brightness
- *  
- *  
  *  Refactor this to
- *  
- *  (screen is in recalibrate control screen mode)
- *  0 -> don't change any variables (this could also be used to recalibrate pot)
- *  
- *  (screen is in setup screen mode)
- *  1 -> change LCD brightness
- *  2 -> change LCD contrast
- *  3 -> change ISO 
- *  4 -> change option for light meter display to vu meter mode (VU mode)
- *  5 -> change option for light meter display to bar graph mode (bargraph mode)
- *
- *  (the following are displayed in either of the light meter display modes)
- *  6 -> change shutter speed
- *  7 -> change fstop
+ *      Setup screen:
+ * 0 -> no changes (like the recal screen) 
+ * 1 -> brightness
+ * 2 -> contrast
+ * 3 -> ISO
+ * 4 -> meter
+ * 5 -> bargraph
+ * 
+ *      One of the meter screens:
+ * 6 -> shutter speed
+ * 7 -> aperature
+ * 
+ *      Recalibrate screen:
+ * 8 -> recalibrate control
  */
   variableChoice = getVariableChoice(debounceTimeValue, lastVariableChoice);
   lastVariableChoice = variableChoice;
@@ -173,8 +167,7 @@ int getVariables() {
  * update LCD panel 
  *********************/
 void updateLCD(int updateItem){
-// VU meter, 1 for bargraph *** this will change with the pot setting
-  int meterStyle = 0; 
+// VU meter, 1 for bargraph *** this will change with the pot settingChange 
     
   switch(updateItem) {
     case 0:
@@ -182,7 +175,7 @@ void updateLCD(int updateItem){
       break;
     case 1:
       setupScreen (updateItem, meterStyle);
-      analogWrite(lcdBackpanelLight, brightness);
+      analogWrite(lcdBackpanelLight, lcdBrightness);
       break;
     case 2:
       setupScreen (updateItem, meterStyle);
@@ -197,13 +190,16 @@ void updateLCD(int updateItem){
     case 5:
       setupScreen (updateItem, meterStyle);
       break;
-    case 6: // change shutter
+    case 6:
       drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
       updateMeter (solarPanel);
       break;
-    case 7: // change fstop
+    case 7:
       drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
       updateMeter (solarPanel);
+      break;
+    case 8:
+      recalibrateScreen();
       break;
   }
         
@@ -316,7 +312,7 @@ void updateMeter (int meterValue){
     int markNumber=1;
     while (markNumber <= numberOfMarks) {
       display.drawLine(markBottom[markNumber-1].x, markBottom[markNumber-1].y, markTop[markNumber-1].x, markTop[markNumber-1].y, BLACK);
-      display.display();  // thought to place this after this while loop
+      display.display();
       markNumber++;
     }
   }
@@ -391,12 +387,21 @@ int getSolarPanelReading(){
  * fetch the variable choice
  *********************/
 int getVariableChoice(unsigned long lastTime, int lastChoice){
-/*  0 -> don't change any of iso, fstop, or shutter speed
- *  1 -> change iso
- *  2 -> change shutter speed
- *  3 -> change fstop
- *  4 -> change the lcd backlight brightness
+/*  0 -> no changes (like the recal screen) 
+ * 1 -> brightness
+ * 2 -> contrast
+ * 3 -> ISO
+ * 4 -> VU style meter
+ * 5 -> bargraph
+ * 
+ *      One of the meter screens:
+ * 6 -> shutter speed
+ * 7 -> aperature
+ * 
+ *      Recalibrate screen:
+ * 8 -> recalibrate control
  */
+//  NOTES FROM BEFORE:
 //  return 1; // change iso ... works, but improve by displaying decimal values like 3.75, 7.5
 //  return 2; // change shutter speed ... works just fine
 //  return 3; // change fstop ... works!
@@ -408,7 +413,7 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
   int upSwitchState = digitalRead(upSwitch);
   int downSwitchState = digitalRead(downSwitch);
   int choice = 0;
-  int numberOfChoices = 8-1; // counting starts at zero
+  int numberOfChoices = 9-1; // counting starts at zero
 
   if ( (timeNow - lastTime ) >= debounceDelay){
     lastTime = timeNow;
@@ -435,11 +440,16 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
 /*********************
  * update the variables
  *********************/
+
 void updateVariables (int updateVariableChoice){
   const int minBrightness = 0;
   const int maxBrightness = 255;
+  const int minContrast = 0;
+  const int maxContrast = 100;
   const int minIsoIndex = 0;
   const int maxIsoIndex = 13;
+  const int minMeterStyle = 0;
+  const int maxMeterStyle = 1;
   const int minShutterSpeedIndex = 0;
   const int maxShutterSpeedIndex = 22;
   const int minApertureIndex = 0;
@@ -447,25 +457,49 @@ void updateVariables (int updateVariableChoice){
   const int minPotValue = 0;
   const int maxPotValue = 1023;
 
-  const int minValue [] { minPotValue, minIsoIndex, minShutterSpeedIndex, minApertureIndex, minBrightness };
-  const int maxValue [] { maxPotValue, maxIsoIndex, maxShutterSpeedIndex, maxApertureIndex, maxBrightness };
+  const int minValue [] { minPotValue, minBrightness, minContrast, minIsoIndex, minMeterStyle, minMeterStyle, minShutterSpeedIndex, minApertureIndex };
+  const int maxValue [] { maxPotValue, maxBrightness, maxContrast, maxIsoIndex, maxMeterStyle, maxMeterStyle, maxShutterSpeedIndex, maxApertureIndex };
 
   int i = updateVariableChoice;
   int variable = map(analogRead(changeVariablesPot), minValue[0], maxValue[0], minValue[i], maxValue[i]);
-  
+ 
+ /* 0 -> no changes (like the recal screen) 
+ * 1 -> brightness
+ * 2 -> contrast
+ * 3 -> ISO
+ * 4 -> meter
+ * 5 -> bargraph
+ * 6 -> shutter speed
+ * 7 -> aperature
+ * 8 -> recalibrate control
+ */
+ 
   switch (i) {
+    case 0:
+      break;
     case 1:
-      isoIDX = variable;
+      lcdBrightness = variable;    
       break;
     case 2:
-      shutterSpeedIDX = variable;
+      lcdContrast = variable;
       break;
     case 3:
-      apertureIDX = variable;
+      isoIDX = variable;
       break;
     case 4:
-      brightness = variable;
-      break;                       
+      meterStyle = variable;
+      break;
+    case 5:
+      meterStyle = variable;
+      break;
+    case 6:
+      shutterSpeedIDX = variable;
+      break;
+    case 7:
+      apertureIDX = variable;
+      break;
+    case 8:
+      break;                        
   }
 }
 
@@ -478,7 +512,8 @@ void recalibrateScreen (){
   struct coordinate instructions = { 0, 10};
   String titleText = "Recalibrate";
   String instructionsText = "Change the    control with  no change to  any settings.";
-
+  
+  display.clearDisplay();
   display.setCursor(title.x, title.y);
   display.println(titleText);
   display.drawLine(underline.x, underline.y, underline.x+83, underline.y, BLACK);
@@ -490,11 +525,12 @@ void recalibrateScreen (){
 /*********************
  * setupScreen,
  *  where selection is:
- *    0 - LCD Brightness
- *    1 - LCD Contrast
- *    2 - ISO
- *    3 - VU meter style
- *    4 - Bargraph style indicator
+ *    0 
+ *    1 - LCD Brightness
+ *    2 - LCD Contrast
+ *    3 - ISO
+ *    4 - VU meter style
+ *    5 - Bargraph style indicator
  *    
  *  where needleStyle is:
  *    0 - vu style meter
@@ -509,13 +545,14 @@ void setupScreen (int select, int needleStyle){
   struct coordinate contrastSelect = {brightness.x-12, brightness.y+7};
   struct coordinate iso = {brightness.x, brightness.y+15};
   struct coordinate isoSelect = {brightness.x-12, brightness.y+15};
+  struct coordinate isoValueCoordinate = {isoSelect.x+32, brightness.y+15};
   struct coordinate meterNeedle = {brightness.x, brightness.y+22};
   struct coordinate meterNeedleSelect = {brightness.x-12, brightness.y+22};
   struct coordinate meterNeedleOption = {brightness.x+48, brightness.y+22};
   struct coordinate meterBar = {brightness.x, brightness.y+29};
   struct coordinate meterBarSelect = {brightness.x-12, brightness.y+29};
   struct coordinate meterBarOption = {brightness.x+48, brightness.y+29};
-  struct coordinate selection = {0, 0};
+  struct coordinate selection = brightnessSelect;
   
   String selectionIndicator = "*>";
   String clearSelectionIndicator = "  ";
@@ -523,20 +560,21 @@ void setupScreen (int select, int needleStyle){
   String unselectedOption = "( )";
   String meterNeedleOptionValue = selectedOption;
   String meterBarOptionValue = unselectedOption;
+  
   switch(select) {
-    case 0:
+    case 1:
       selection = brightnessSelect;
       break;
-    case 1:
+    case 2:
       selection = contrastSelect;
       break;
-    case 2:
+    case 3:
       selection = isoSelect;
       break;
-    case 3:
+    case 4:
       selection = meterNeedleSelect;
       break;
-    case 4:
+    case 5:
       selection = meterBarSelect;
       break;
   }
@@ -562,7 +600,7 @@ void setupScreen (int select, int needleStyle){
   display.setCursor(brightness.x, brightness.y);
   display.println("brightness");
   
-  display.setCursor(contrastSelect.x, contrast.y);
+  display.setCursor(contrastSelect.x, contrastSelect.y);
   display.println(clearSelectionIndicator);
   display.setCursor(contrast.x, contrast.y);
   display.println("contrast");
@@ -571,6 +609,9 @@ void setupScreen (int select, int needleStyle){
   display.println(clearSelectionIndicator);
   display.setCursor(iso.x, iso.y);
   display.println("ISO");
+  
+  display.setCursor(isoValueCoordinate.x, isoValueCoordinate.y);
+  display.println(String(isoTable[int(isoIDX)]));
   
   display.setCursor(meterNeedleSelect.x, meterNeedleSelect.y);
   display.println(clearSelectionIndicator);
