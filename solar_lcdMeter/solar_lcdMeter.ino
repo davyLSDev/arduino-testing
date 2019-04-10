@@ -525,7 +525,7 @@ void recalibrateScreen (){
 /*********************
  * setupScreen,
  *  where selection is:
- *    0 
+ *    0 - do not select anything
  *    1 - LCD Brightness
  *    2 - LCD Contrast
  *    3 - ISO
@@ -537,6 +537,7 @@ void recalibrateScreen (){
  *    1 - bar graph style meter
  *********************/
 void setupScreen (int select, int needleStyle){ 
+  bool noSelection = false;
   struct coordinate title = {0, 0};
   struct coordinate underline = {title.x, title.y+8};
   struct coordinate brightness = {12, 10};
@@ -562,6 +563,9 @@ void setupScreen (int select, int needleStyle){
   String meterBarOptionValue = unselectedOption;
   
   switch(select) {
+	case 0:
+	  noSelection = true;
+	  break;
     case 1:
       selection = brightnessSelect;
       break;
@@ -626,8 +630,11 @@ void setupScreen (int select, int needleStyle){
   display.setCursor(meterBarOption.x, meterBarOption.y);
   display.println(meterBarOptionValue);
   
-  display.setCursor(selection.x, selection.y);
-  display.println(selectionIndicator);
+  if (noSelection == false) {
+	  display.setCursor(selection.x, selection.y);
+	  display.println(selectionIndicator);
+  }
+  
   display.display();
 }
 
