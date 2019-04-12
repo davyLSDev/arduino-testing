@@ -17,12 +17,14 @@
  * 4. DONE: update the UI (sketch in Dia first maybe?)
  * 5. make provision for times > 1 sec with more precision
  * 6. make provision for wider apertures, and other intermediate values
- * 7. make provision to change lcd contrast (I didn't notice a great amount of diff in values though)
+ * 7. DONE: make provision to change lcd contrast 
+ *      (I didn't notice a great amount of diff in values though)
  * 8. Get rid of global variables that are unneeded
  * 9. UI redesign with setupscreen and two types of meters
  *     bargraph which is new
- *     vu meter style (already implemented)
- * 
+ *     DONE: vu meter style
+ *     DONE: setup screen
+ *     DONE: recalibrate screen
  */
  
 #include <Adafruit_GFX.h>
@@ -44,6 +46,26 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(13, 11, 5, 7, 6);
   * Arduino pin  10 -> pwm pin for lcd brightness  
  */
 
+/***********************************************************************
+ * Function prototypes because sometimes the preprocessor gets mixed up:
+ * see here: https://forum.arduino.cc/index.php?topic=375865.0
+ * and here: http://www.cplusplus.com/articles/yAqpX9L8/ 
+
+void getScaleMarkCoordinates (int, int, int, int, int);
+int getSolarPanelReading ();
+int getVariableChoice (unsigned long, int);
+void updateVariables (int);
+void setupScreen (int , int);
+void drawVUMeter (String, String, int, int);
+void updateMeter (int);
+void recalibrateScreen ();
+
+What the real problem was is that I was missing a "}" in fstopSelectorIndicator function
+ ***********************************************************************/
+
+/***********************************************************************  
+ *  Globals
+ ***********************************************************************/
 const int upSwitch = 8;
 const int downSwitch = 9;
 const int lcdBackpanelLight = 10; 
@@ -99,14 +121,14 @@ void setup()
   pinMode (downSwitch, INPUT);
   pinMode (lcdBackpanelLight, OUTPUT);
   Serial.begin(9600);
-  GetScaleMarkCoordinates (needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, numberOfScaleMarks, markLineLength);
+  getScaleMarkCoordinates (needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, numberOfScaleMarks, markLineLength);
   
   display.begin(); // initialize display
-  analogWrite(lcdBackpanelLight, lcdBrightness);
-  display.setContrast(lcdContrast);
-  display.setTextSize(1);
-  display.setRotation(2);
-  display.clearDisplay();
+  analogWrite (lcdBackpanelLight, lcdBrightness);
+  display.setContrast (lcdContrast);
+  display.setTextSize (1);
+  display.setRotation (2);
+  display.clearDisplay ();
 }
 
 /********************
@@ -114,9 +136,9 @@ void setup()
  ********************/
 void loop()                       
 {
-  solarPanel = getSolarPanelReading();
-  variableChoice = getVariables();
-  updateLCD(variableChoice);
+  solarPanel = getSolarPanelReading ();
+  variableChoice = getVariables ();
+  updateLCD (variableChoice);
   
 //  drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
 //  updateMeter (solarPanel);
@@ -126,7 +148,7 @@ void loop()
 //  drawBarMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
 //  updateBarMeter (solarPanel);
 //  recalibrateScreen();
-  delay(pauseTime);
+  delay (pauseTime);
 
 }
 
@@ -137,7 +159,7 @@ void loop()
 /*********************
  * get variables 
  *********************/ 
-int getVariables() {
+int getVariables () {
   /* variable register is used thus
  *  Refactor this to
  *      Setup screen:
@@ -155,7 +177,7 @@ int getVariables() {
  *      Recalibrate screen:
  * 8 -> recalibrate control
  */
-  variableChoice = getVariableChoice(debounceTimeValue, lastVariableChoice);
+  variableChoice = getVariableChoice (debounceTimeValue, lastVariableChoice);
   lastVariableChoice = variableChoice;
   if (variableChoice !=0){
     updateVariables (variableChoice);
@@ -166,16 +188,16 @@ int getVariables() {
 /*********************
  * update LCD panel 
  *********************/
-void updateLCD(int updateItem){
-// VU meter, 1 for bargraph *** this will change with the pot settingChange 
-    
-  switch(updateItem) {
+// VU meter, 1 for bargraph *** this will change with the pot settingChange
+void updateLCD (int updateItem){
+  
+  switch (updateItem) {
     case 0:
       setupScreen (updateItem, meterStyle);
       break;
     case 1:
       setupScreen (updateItem, meterStyle);
-      analogWrite(lcdBackpanelLight, lcdBrightness);
+      analogWrite (lcdBackpanelLight, lcdBrightness);
       break;
     case 2:
       setupScreen (updateItem, meterStyle);
@@ -190,26 +212,49 @@ void updateLCD(int updateItem){
     case 5:
       setupScreen (updateItem, meterStyle);
       break;
-    case 6:
-      drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+    case 6: // Cases 6, and 7 more naturally should be updated by the meter function
+      drawVUMeter (("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+      shutterSelectIndicator (meterStyle);
       updateMeter (solarPanel);
       break;
     case 7:
-      drawVUMeter(("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+      drawVUMeter (("f"+String(apertureTable[int(apertureIDX)])), shutterSpeedTable[int(shutterSpeedIDX)], int(isoTable[int(isoIDX)]), variableChoice);
+      fstopSelectIndicator (meterStyle);
       updateMeter (solarPanel);
       break;
     case 8:
-      recalibrateScreen();
+      recalibrateScreen ();
       break;
-  }
-        
+  }       
 }
-  
+ 
+// could likely combine the next two functions into one
+void shutterSelectIndicator (int style) {
+	int tempStyle = 0;
+	int length = 35;
+	struct coordinate vuShutter {0, 9};
+	struct coordinate barShutter {0, 15}; // placeholder for now
+	if ( tempStyle == 0) {
+		display.drawLine (vuShutter.x, vuShutter.y, \
+		vuShutter.x+length, vuShutter.y, BLACK);
+	}
+}
+
+void fstopSelectIndicator (int style) {
+	int tempStyle = 0;
+	int length = 27;
+	struct coordinate vuFstop {50, 9};
+	struct coordinate barFstop {0, 15}; // placeholder for now
+	if ( tempStyle == 0) {
+		display.drawLine (vuFstop.x, vuFstop.y, \
+		vuFstop.x+length, vuFstop.y, BLACK);
+	}
+}
 
 /*********************
  * draw the meter VU style 
  *********************/ 
-void drawVUMeter(String fstop, String shutter, int iso, int changeVariable){
+void drawVUMeter (String fstop, String shutter, int iso, int changeVariable){
   byte upperLeftArc = 0x1;
   byte upperRightArc = 0x2;
 //  byte lowerRightArc = 0x4;
@@ -229,13 +274,13 @@ void drawVUMeter(String fstop, String shutter, int iso, int changeVariable){
   struct coordinate minusSignCoordinate = { 24, 40}; // all the way to the left {16, 40};
   struct coordinate plusSignCoordinate = { 50, 40}; // all the way to the left {42, 40};
   
-  display.clearDisplay();
+  display.clearDisplay ();
   
 // lables
-  display.setCursor(fstopCoordinate.x, fstopCoordinate.y);
-  display.println(fstop.substring(0, 5));
-  display.setCursor(shutterSpeedCoordinate.x, shutterSpeedCoordinate.y);
-  display.println(shutter);
+  display.setCursor (fstopCoordinate.x, fstopCoordinate.y);
+  display.println (fstop.substring(0, 5));
+  display.setCursor (shutterSpeedCoordinate.x, shutterSpeedCoordinate.y);
+  display.println (shutter);
 
   if (changeVariable !=0){
 //    display.setCursor(changeLableCoordinate.x, changeLableCoordinate.y);
@@ -244,18 +289,18 @@ void drawVUMeter(String fstop, String shutter, int iso, int changeVariable){
   
 //  display.setCursor(isoValueCoordinate.x, isoValueCoordinate.y);
 //  display.println(String (iso));
-  display.setCursor(minusSignCoordinate.x, minusSignCoordinate.y);
-  display.println(minusSign);
-  display.setCursor(plusSignCoordinate.x, plusSignCoordinate.y);
-  display.println(plusSign);
+  display.setCursor (minusSignCoordinate.x, minusSignCoordinate.y);
+  display.println (minusSign);
+  display.setCursor (plusSignCoordinate.x, plusSignCoordinate.y);
+  display.println (plusSign);
 
 // draw the centre of the needle  
-  display.fillCircle(needleBaseCoordinate.x, needleBaseCoordinate.y, needleBaseFillWidth, BLACK);
-  display.display();
+  display.fillCircle (needleBaseCoordinate.x, needleBaseCoordinate.y, needleBaseFillWidth, BLACK);
+  display.display ();
 
 // draw the meter's scale using circle segments
-  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleBaseRadius, scaleArcs, BLACK);
-  display.drawCircleHelper(needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, scaleArcs, BLACK);
+  display.drawCircleHelper (needleBaseCoordinate.x, needleBaseCoordinate.y, scaleBaseRadius, scaleArcs, BLACK);
+  display.drawCircleHelper (needleBaseCoordinate.x, needleBaseCoordinate.y, scaleRadius, scaleArcs, BLACK);
 // draw the scale marks  
   scaleMarks (needleBaseCoordinate.x, needleBaseCoordinate.y, numberOfScaleMarks, scaleRadius, markLineLength);
 }
@@ -274,50 +319,50 @@ void updateMeter (int meterValue){
   xTip = needleBaseCoordinate.x - int(needleRadius*cos(angle));
   yTip = needleBaseCoordinate.y - int(needleRadius*abs(sin(angle)));
 
-  display.drawLine(needleBaseCoordinate.x, needleBaseCoordinate.y, xTip, yTip, BLACK);
-  display.display();
+  display.drawLine (needleBaseCoordinate.x, needleBaseCoordinate.y, xTip, yTip, BLACK);
+  display.display ();
 }
 
 /*********************
  * calculate the scale mark coordinates
  *********************/
-  void GetScaleMarkCoordinates (int xCoordinate, int yCoordinate, int radius, int numberOfMarks, int markLength){
-    int xTop;
-    int yTop;
-    int xBottom;
-    int yBottom;
-    int outsideRadius = radius + markLength;
-    int markNumber=1;
+void getScaleMarkCoordinates (int xCoordinate, int yCoordinate, int radius, int numberOfMarks, int markLength){
+  int xTop;
+  int yTop;
+  int xBottom;
+  int yBottom;
+  int outsideRadius = radius + markLength;
+  int markNumber=1;
 
-    float Pi = 3.1415926;
-    int angleForEachMark = 180/(1+numberOfMarks);
-    int angleToPlaceMark = 90;
+  float Pi = 3.1415926;
+  int angleForEachMark = 180/(1+numberOfMarks);
+  int angleToPlaceMark = 90;
 
-    while (markNumber <= numberOfMarks) {
-      angleToPlaceMark = markNumber*angleForEachMark;
-      float angle = angleToPlaceMark*Pi/180.0; // trig functions are in radians!
-      markTop[markNumber-1].x = xCoordinate - int(outsideRadius*cos(angle));
-      markTop[markNumber-1].y = yCoordinate - int(outsideRadius*abs(sin(angle)));
-      markBottom[markNumber-1].x = xCoordinate - int(radius*cos(angle));
-      markBottom[markNumber-1].y = yCoordinate - int(radius*abs(sin(angle)));
-      markNumber++;
-    } 
-  }
+  while (markNumber <= numberOfMarks) {
+    angleToPlaceMark = markNumber*angleForEachMark;
+    float angle = angleToPlaceMark*Pi/180.0; // trig functions are in radians!
+    markTop[markNumber-1].x = xCoordinate - int(outsideRadius*cos(angle));
+    markTop[markNumber-1].y = yCoordinate - int(outsideRadius*abs(sin(angle)));
+    markBottom[markNumber-1].x = xCoordinate - int(radius*cos(angle));
+    markBottom[markNumber-1].y = yCoordinate - int(radius*abs(sin(angle)));
+    markNumber++;
+  } 
+}
 
 /*********************
  * draw the scale marks 
  *********************/ 
-  void scaleMarks (int xCoordinate, int yCoordinate, int numberOfMarks, int radius, int markLength){
+void scaleMarks (int xCoordinate, int yCoordinate, int numberOfMarks, int radius, int markLength){
 
-    int markNumber=1;
-    while (markNumber <= numberOfMarks) {
-      display.drawLine(markBottom[markNumber-1].x, markBottom[markNumber-1].y, markTop[markNumber-1].x, markTop[markNumber-1].y, BLACK);
-      display.display();
-      markNumber++;
-    }
+  int markNumber=1;
+  while (markNumber <= numberOfMarks) {
+    display.drawLine (markBottom[markNumber-1].x, markBottom[markNumber-1].y, markTop[markNumber-1].x, markTop[markNumber-1].y, BLACK);
+    display.display ();
+    markNumber++;
   }
+}
 
-void drawBarMeter(String fstop, String shutter, int iso, int changeVariable){
+void drawBarMeter (String fstop, String shutter, int iso, int changeVariable){
 
   struct coordinate fstopCoordinate = {54, 10};
   struct coordinate shutterSpeedCoordinate = {48, 0};
@@ -326,19 +371,19 @@ void drawBarMeter(String fstop, String shutter, int iso, int changeVariable){
 
   String bottomLable = "-2  -1  0   1   2";
   
-  display.clearDisplay();
+  display.clearDisplay ();
   
 // lables
-  display.setCursor(fstopCoordinate.x, fstopCoordinate.y);
-  display.println(fstop.substring(0, 5));
+  display.setCursor (fstopCoordinate.x, fstopCoordinate.y);
+  display.println (fstop.substring(0, 5));
   
-  display.setCursor(shutterSpeedCoordinate.x, shutterSpeedCoordinate.y);
-  display.println(shutter);
+  display.setCursor (shutterSpeedCoordinate.x, shutterSpeedCoordinate.y);
+  display.println (shutter);
   
-  display.setCursor(bottomLableCoordinate.x, bottomLableCoordinate.y);
-  display.println(bottomLable);
+  display.setCursor (bottomLableCoordinate.x, bottomLableCoordinate.y);
+  display.println (bottomLable);
 
-  display.display();
+  display.display ();
 
 // draw the bar meter's scale marks
 
@@ -364,7 +409,7 @@ void updateBarMeter (int meterValue){
 /********************
  * test the bar meter
  ********************/
-void testBarMeter(){
+void testBarMeter (){
  for (int test = 0; test < 73; test++) {
     updateBarMeter(test);
     display.clearDisplay();
@@ -374,11 +419,11 @@ void testBarMeter(){
 /*********************
  * fetch the solar panel voltage 
  *********************/
-int getSolarPanelReading(){
+int getSolarPanelReading (){
 // Tweak these next values for light reading  
   const int minLight = 0;
   const int maxLight = 360;
-  int lightReading = analogRead(solarPanelInput);
+  int lightReading = analogRead (solarPanelInput);
   int lightRange = map (lightReading, minLight, maxLight, 0, 100);
   return lightRange; 
 }
@@ -386,7 +431,7 @@ int getSolarPanelReading(){
 /*********************
  * fetch the variable choice
  *********************/
-int getVariableChoice(unsigned long lastTime, int lastChoice){
+int getVariableChoice (unsigned long lastTime, int lastChoice){
 /*  0 -> no changes (like the recal screen) 
  * 1 -> brightness
  * 2 -> contrast
@@ -433,14 +478,13 @@ int getVariableChoice(unsigned long lastTime, int lastChoice){
     if ( lastChoice > numberOfChoices ) lastChoice = 0; // wraparound
     if ( lastChoice < 0 ) lastChoice = numberOfChoices;
   }
-  Serial.println("Choice number is "+String(lastChoice));
+  Serial.println ("Choice number is "+String(lastChoice));
   return lastChoice;
 }
 
 /*********************
  * update the variables
  *********************/
-
 void updateVariables (int updateVariableChoice){
   const int minBrightness = 0;
   const int maxBrightness = 255;
@@ -507,9 +551,9 @@ void updateVariables (int updateVariableChoice){
  * recalibrate screen
  *********************/
 void recalibrateScreen (){
-  struct coordinate title = { 0, 0};
+  struct coordinate title = {0, 0};
   struct coordinate underline = {title.x, title.y+8};
-  struct coordinate instructions = { 0, 10};
+  struct coordinate instructions = {0, 10};
   String titleText = "Recalibrate";
   String instructionsText = "Change the    control with  no change to  any settings.";
   
@@ -562,7 +606,7 @@ void setupScreen (int select, int needleStyle){
   String meterNeedleOptionValue = selectedOption;
   String meterBarOptionValue = unselectedOption;
   
-  switch(select) {
+  switch (select) {
 	case 0:
 	  noSelection = true;
 	  break;
@@ -583,7 +627,7 @@ void setupScreen (int select, int needleStyle){
       break;
   }
     
-  switch(needleStyle) {
+  switch (needleStyle) {
     case 0:
       meterNeedleOptionValue = selectedOption;
       meterBarOptionValue = unselectedOption;
@@ -594,56 +638,56 @@ void setupScreen (int select, int needleStyle){
       break;
   }
   
-  display.clearDisplay();
-  display.setCursor(title.x, title.y);
-  display.println("Setup Screen");
-  display.drawLine(underline.x, underline.y, underline.x+83, underline.y, BLACK);
+  display.clearDisplay ();
+  display.setCursor (title.x, title.y);
+  display.println ("Setup Screen");
+  display.drawLine (underline.x, underline.y, underline.x+83, underline.y, BLACK);
   
-  display.setCursor(brightnessSelect.x, brightnessSelect.y);
-  display.println(clearSelectionIndicator);
-  display.setCursor(brightness.x, brightness.y);
-  display.println("brightness");
+  display.setCursor (brightnessSelect.x, brightnessSelect.y);
+  display.println (clearSelectionIndicator);
+  display.setCursor (brightness.x, brightness.y);
+  display.println ("brightness");
   
-  display.setCursor(contrastSelect.x, contrastSelect.y);
-  display.println(clearSelectionIndicator);
-  display.setCursor(contrast.x, contrast.y);
-  display.println("contrast");
+  display.setCursor (contrastSelect.x, contrastSelect.y);
+  display.println (clearSelectionIndicator);
+  display.setCursor (contrast.x, contrast.y);
+  display.println ("contrast");
   
-  display.setCursor(isoSelect.x, isoSelect.y);
-  display.println(clearSelectionIndicator);
-  display.setCursor(iso.x, iso.y);
-  display.println("ISO");
+  display.setCursor (isoSelect.x, isoSelect.y);
+  display.println (clearSelectionIndicator);
+  display.setCursor (iso.x, iso.y);
+  display.println ("ISO");
   
-  display.setCursor(isoValueCoordinate.x, isoValueCoordinate.y);
-  display.println(String(isoTable[int(isoIDX)]));
+  display.setCursor (isoValueCoordinate.x, isoValueCoordinate.y);
+  display.println (String(isoTable[int(isoIDX)]));
   
-  display.setCursor(meterNeedleSelect.x, meterNeedleSelect.y);
-  display.println(clearSelectionIndicator);
-  display.setCursor(meterNeedle.x, meterNeedle.y);
-  display.println("meter");
+  display.setCursor (meterNeedleSelect.x, meterNeedleSelect.y);
+  display.println (clearSelectionIndicator);
+  display.setCursor (meterNeedle.x, meterNeedle.y);
+  display.println ("meter");
   
-  display.setCursor(meterNeedleOption.x, meterNeedleOption.y);
-  display.println(meterNeedleOptionValue);
-  display.setCursor(meterBar.x, meterBar.y);
-  display.println("bargraph");
+  display.setCursor (meterNeedleOption.x, meterNeedleOption.y);
+  display.println (meterNeedleOptionValue);
+  display.setCursor (meterBar.x, meterBar.y);
+  display.println ("bargraph");
   
-  display.setCursor(meterBarOption.x, meterBarOption.y);
-  display.println(meterBarOptionValue);
+  display.setCursor (meterBarOption.x, meterBarOption.y);
+  display.println (meterBarOptionValue);
   
   if (noSelection == false) {
-	  display.setCursor(selection.x, selection.y);
-	  display.println(selectionIndicator);
+	  display.setCursor (selection.x, selection.y);
+	  display.println (selectionIndicator);
   }
   
-  display.display();
+  display.display ();
 }
 
 void testSetupScreen (){
    for (int select = 0; select < 5; select++){
     for (int opt = 0; opt < 2; opt++) {
-      setupScreen(select, opt); 
-      display.clearDisplay();
-      delay(pauseTime);
+      setupScreen (select, opt); 
+      display.clearDisplay ();
+      delay (pauseTime);
     }
   }
 }
